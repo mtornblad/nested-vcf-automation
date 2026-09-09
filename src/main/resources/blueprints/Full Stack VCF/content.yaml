@@ -4,22 +4,22 @@ inputs:
     type: string
     title: Lab Name
     default: nested-vcf-lab
-    description: Kort DNS-kompatibelt namn som används som prefix för genererade VPC- och namespace-namn
+    description: Short DNS-compatible name used as the prefix for generated VPC and namespace names
   dns_prefix:
     type: string
     title: DNS Hostname Prefix
     default: mt
-    description: Prefix som läggs till framför alla DNS-namn (t.ex. 'mt' ger 'mtvc01')
+    description: Prefix added to every generated hostname (for example, 'mt' produces 'mtvc01')
   domain_name:
     type: string
     title: Domain Name
     default: dclab.se
-    description: Domännamn för miljön (t.ex. dclab.se)
+    description: DNS domain for the nested environment (for example, dclab.se)
   dns_forwarder:
     type: string
     title: Upstream DNS Server
     default: 1.1.1.1
-    description: IPv4-adress till den DNS-server som VyOS ska vidarebefordra externa frågor till
+    description: IPv4 address of the upstream resolver used by the VyOS forwarding service
   ntp_server:
     type: string
     title: Upstream NTP Server
@@ -89,7 +89,7 @@ variables:
       allow_from: ${variable.vpc_settings.network}
   # --- ESXi Settings ---
   esx_settings:
-    vm_image: vmi-818f8e78d50a89f8c
+    vm_image: vmi-ade283728d7174041
     vm_class: nested-esx-small
     credentials:
       username: root
@@ -224,7 +224,7 @@ variables:
         - ${variable.net_prefix}.97
         - ${variable.net_prefix}.98
         - ${variable.net_prefix}.99
-  # --- Nätverkslayout ---
+  # --- Network layout ---
   netlayout:
     mgmt:
       name: vlan1601
@@ -291,7 +291,7 @@ variables:
       description: VPC Uplink network
       access_mode: Private
       connectivity_state: Connected
-  # --- Dynamisk hantering av IP-prefix & Reverse Zone ---
+  # --- Derived IP prefixes and reverse zones ---
   mgmt_oct1: ${split(variable.netlayout.mgmt.ipaddresses, '.')[0]}
   mgmt_oct2: ${split(variable.netlayout.mgmt.ipaddresses, '.')[1]}
   mgmt_oct3: ${split(variable.netlayout.mgmt.ipaddresses, '.')[2]}
@@ -299,10 +299,10 @@ variables:
   uplink_oct2: ${split(variable.netlayout.uplink.ipaddresses, '.')[1]}
   uplink_oct3: ${split(variable.netlayout.uplink.ipaddresses, '.')[2]}
   net_prefix: ${variable.mgmt_oct1}.${variable.mgmt_oct2}.${variable.mgmt_oct3}
-  # Reverse-zoner härledda från management- respektive uplink-subnätet
+  # Reverse zones derived from the management and uplink subnets
   rev_zone_mgmt: ${variable.mgmt_oct3}.${variable.mgmt_oct2}.${variable.mgmt_oct1}.in-addr.arpa
   rev_zone_uplink: ${variable.uplink_oct3}.${variable.uplink_oct2}.${variable.uplink_oct1}.in-addr.arpa
-  # --- VyOS Konfiguration (User Data) ---
+  # --- VyOS supplemental configuration ---
   vyos_config: |
     set interfaces ethernet __TRUNK_INTERFACE__ address ${variable.netlayout.trunk.defaultgw}/24
     set interfaces ethernet __TRUNK_INTERFACE__ mtu 8000
@@ -323,7 +323,7 @@ variables:
     set service ntp listen-address ${variable.vyos_settings.mgmt_ip}
     set service ntp allow-client address ${variable.vyos_settings.ntp.allow_from}
 
-    # --- Dynamiska DNS A-records ---
+    # --- Generated DNS A records ---
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${variable.vyos_settings.hostname} address ${variable.vyos_settings.mgmt_ip}
     %{for host in variable.esx_settings.servers}
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${host.name} address ${host.ip}
@@ -344,7 +344,7 @@ variables:
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${variable.installer_settings.hostname} address ${variable.installer_settings.ip}
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${variable.jumphost_settings.hostname} address ${variable.jumphost_settings.ip}
 
-    # --- Dynamiska DNS PTR-records (Reverse) ---
+    # --- Generated DNS PTR records ---
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 10 target ${variable.installer_settings.hostname}.${input.domain_name}
     %{for host in variable.esx_settings.servers}
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr ${split(host.ip, '.')[3]} target ${host.name}.${input.domain_name}
@@ -1059,8 +1059,8 @@ outputs:
     value: |-
       ## VCF Lab Environment Overview
 
-      Din labbmiljö för VMware Cloud Foundation har nu skapats framgångsrikt.
-      Nedan finner du en sammanställning över alla provisionerade instanser i ditt namespace.
+      The VMware Cloud Foundation lab resources have been provisioned.
+      The table below summarizes the instances created in the namespace.
 
       #### Remote Access (RDP to Jumphost)
       **Public IP:** ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
@@ -1126,8 +1126,8 @@ outputs:
           "${variable.vyos_settings.mgmt_ip}"
         ],
         "hostSpecs": [
-        %{for index, host in variable.esx_settings.servers}
-          %{if index > 0},%{endif}
+        %{for host in variable.esx_settings.servers}
+          %{if host.name != variable.esx_settings.servers[0].name},%{endif}
           {
             "hostname": "${host.name}.${input.domain_name}",
             "credentials": {
@@ -1360,8 +1360,8 @@ outputs:
         }%{if input.install_automation == true},
         "vcfAutomationSpec": {
           "ipPool": [
-          %{for index, address in variable.vcf_settings.automation.ip_pool}
-            %{if index > 0},%{endif}"${address}"
+          %{for address in variable.vcf_settings.automation.ip_pool}
+            %{if address != variable.vcf_settings.automation.ip_pool[0]},%{endif}"${address}"
           %{endfor}
           ],
           "hostname": "${input.dns_prefix}auto-vip.${input.domain_name}",

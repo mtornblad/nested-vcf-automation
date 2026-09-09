@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -61,6 +62,29 @@ class BlueprintContractTests(unittest.TestCase):
             definition = self.blueprint["inputs"][name]
             self.assertTrue(definition["encrypted"])
             self.assertNotIn("default", definition)
+
+    def test_generated_json_uses_single_iterator_template_loops(self) -> None:
+        self.assertIsNone(
+            re.search(r"%\{\s*for\s+\w+\s*,\s*\w+\s+in\s+", self.raw)
+        )
+
+        template = self.blueprint["outputs"]["vcf_deployment_json"]["value"]
+        self.assertIn(
+            "%{for host in variable.esx_settings.servers}",
+            template,
+        )
+        self.assertIn(
+            "%{if host.name != variable.esx_settings.servers[0].name},%{endif}",
+            template,
+        )
+        self.assertIn(
+            "%{for address in variable.vcf_settings.automation.ip_pool}",
+            template,
+        )
+        self.assertIn(
+            "%{if address != variable.vcf_settings.automation.ip_pool[0]},%{endif}",
+            template,
+        )
 
 
 if __name__ == "__main__":

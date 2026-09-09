@@ -189,6 +189,36 @@ def validate() -> list[str]:
         "VCF Installer must use its qualified DNS property",
     )
 
+    # VCF Automation's block-template renderer supports a single iterator in
+    # these loops. A Terraform-style ``index, value`` declaration silently
+    # renders the value as null and also breaks comma insertion.
+    require(
+        re.search(r"%\{\s*for\s+\w+\s*,\s*\w+\s+in\s+", raw) is None,
+        "block templates must not use two-variable for loops",
+    )
+    deployment_json = (
+        blueprint.get("outputs", {}).get("vcf_deployment_json", {}).get("value", "")
+    )
+    require(
+        "%{for host in variable.esx_settings.servers}" in deployment_json,
+        "hostSpecs must iterate directly over ESXi hosts",
+    )
+    require(
+        "%{if host.name != variable.esx_settings.servers[0].name},%{endif}"
+        in deployment_json,
+        "hostSpecs must delimit every host after the first",
+    )
+    require(
+        "%{for address in variable.vcf_settings.automation.ip_pool}"
+        in deployment_json,
+        "vcfAutomationSpec.ipPool must iterate directly over addresses",
+    )
+    require(
+        "%{if address != variable.vcf_settings.automation.ip_pool[0]},%{endif}"
+        in deployment_json,
+        "vcfAutomationSpec.ipPool must delimit every address after the first",
+    )
+
     return errors
 
 
