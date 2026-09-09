@@ -1,0 +1,6 @@
+{
+  "id": "f86262c8-7342-45cb-82b7-4941ed9b0a64",
+  "name": "Full Stack VCF",
+  "description": "Provision the networking and virtual machines for a complete nested VCF lab.",
+  "requestScopeOrg": true
+}

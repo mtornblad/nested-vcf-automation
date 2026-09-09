@@ -1,0 +1,15 @@
+---
+# Empty arrays explicitly exclude all content not owned by this project.
+blueprint:
+  - Full Stack VCF
+property-group: []
+custom-resource: []
+resource-action: []
+workflow: []
+subscription: []
+policy:
+  approval: []
+  day2-actions: []
+  iaas-resource: []
+  lease: []
+scenario: []

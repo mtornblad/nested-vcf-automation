@@ -1,0 +1,24 @@
+# Maven output
+target/
+release.properties
+*.releaseBackup
+
+# Python validation
+.venv/
+__pycache__/
+*.py[cod]
+
+# Local configuration and credentials
+settings.xml
+.env
+.env.*
+!.env.example
+*.local.yaml
+*.local.json
+
+# Editor and operating-system state
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
