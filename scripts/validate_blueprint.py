@@ -199,9 +199,26 @@ def validate() -> list[str]:
     )
 
     installer_properties = property_map(resources.get("Installer_VM", {}))
+    installer_ovf_keys = {
+        "ROOT_PASSWORD",
+        "LOCAL_USER_PASSWORD",
+        "vami.hostname",
+        "guestinfo.ntp",
+        "vami.ip_address_version",
+        "vami.ip0",
+        "vami.netmask0",
+        "vami.gateway",
+        "vami.domain",
+        "vami.searchpath",
+        "vami.DNS",
+    }
     require(
-        "vami.DNS.SDDC-Manager" in installer_properties,
-        "VCF Installer must use its qualified DNS property",
+        set(installer_properties) == installer_ovf_keys,
+        "VCF Installer vApp keys must match the tested VCF 9.1 image contract",
+    )
+    require(
+        not any("SDDC-Manager" in key for key in installer_properties),
+        "VCF Installer vApp keys must not contain the SDDC-Manager suffix",
     )
 
     # VM Operator prefixes vApp property keys with guestinfo when it exposes

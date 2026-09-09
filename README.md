@@ -45,15 +45,22 @@ python3 -m pip install -r requirements-dev.txt
 make test
 ```
 
-## Package and publish
+## Pull, package, and publish
 
 Build Tools for VMware Aria 4.25.0, Maven 3.9 or newer, and Java 17 are
 required.
 
 ```bash
+make pull PROFILE=lab
 make package
 make push PROFILE=lab
 ```
+
+`pull` (also available as the `download` alias) exports the objects named in
+`content.yaml` from VCF Automation and overwrites their local source files.
+The target refuses to run in a dirty Git checkout by default. Commit or stash
+local work first; use `FORCE=true` only when discarding those changes is
+intentional. Source validation runs after a successful pull.
 
 The Maven profile contains the VCF Automation endpoint and authentication.
 Keep it in the user's Maven `settings.xml`; never add it to this repository.
@@ -62,6 +69,7 @@ When this repository is used as a submodule, the umbrella runner supplies the
 profile from `configuration/lab.local.json` and permits an explicit override:
 
 ```bash
+./orchestration/run_automation.py pull
 ./orchestration/run_automation.py build
 ./orchestration/run_automation.py upload
 ./orchestration/run_automation.py upload --profile another-lab
@@ -99,6 +107,12 @@ for the PVC volume and controller contract.
 The ESXi image advertises unqualified OVF keys such as `hostname`, `password`,
 and `ipaddress`. Those exact keys belong in `spec.bootstrap.vAppConfig`;
 VM Operator exposes them inside the guest with the `guestinfo.` prefix.
+
+The tested VCF Installer 9.1 image contract uses `vami.ip0`,
+`vami.netmask0`, `vami.gateway`, `vami.domain`, `vami.searchpath`, and
+uppercase `vami.DNS`. Do not append `.SDDC-Manager` to these VM Operator
+bootstrap keys. Passwords use `ROOT_PASSWORD` and `LOCAL_USER_PASSWORD`, while
+hostname and NTP use `vami.hostname` and `guestinfo.ntp` respectively.
 
 The image IDs must identify `ClusterVirtualMachineImage` objects available to
 the target namespace. The nested ESXi VM Class must expose hardware-assisted

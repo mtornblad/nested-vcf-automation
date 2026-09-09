@@ -1,4 +1,4 @@
-.PHONY: validate validate-spec test package push clean
+.PHONY: validate validate-spec test package pull download push clean
 
 PYTHON ?= python3
 MAVEN ?= mvn
@@ -15,6 +15,17 @@ test: validate
 
 package: test
 	$(MAVEN) clean package
+
+pull:
+	@test -n "$(PROFILE)" || { echo "PROFILE is required, for example: make pull PROFILE=lab" >&2; exit 2; }
+	@if [ "$(FORCE)" != "true" ] && [ -n "$$(git status --porcelain)" ]; then \
+		echo "Refusing to overwrite a dirty checkout; commit/stash changes or rerun with FORCE=true" >&2; \
+		exit 2; \
+	fi
+	$(MAVEN) vcfa-all-apps:pull -P$(PROFILE)
+	$(PYTHON) scripts/validate_blueprint.py
+
+download: pull
 
 push: test
 	@test -n "$(PROFILE)" || { echo "PROFILE is required, for example: make push PROFILE=lab" >&2; exit 2; }

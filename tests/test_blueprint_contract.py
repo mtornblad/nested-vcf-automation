@@ -28,6 +28,13 @@ class BlueprintContractTests(unittest.TestCase):
         self.assertEqual([], self.descriptor["workflow"])
         self.assertEqual([], self.descriptor["subscription"])
 
+    def test_makefile_defines_a_guarded_vcfa_pull(self) -> None:
+        makefile = (PROJECT_ROOT / "Makefile").read_text(encoding="utf-8")
+        self.assertIn("vcfa-all-apps:pull -P$(PROFILE)", makefile)
+        self.assertIn("git status --porcelain", makefile)
+        self.assertIn('"$(FORCE)" != "true"', makefile)
+        self.assertIn("download: pull", makefile)
+
     def test_vyos_resolves_through_its_own_forwarder(self) -> None:
         properties = validate_blueprint.property_map(self.resources["VyOS_Machine"])
         self.assertEqual(
@@ -46,6 +53,50 @@ class BlueprintContractTests(unittest.TestCase):
             config,
         )
         self.assertIn("${base64_encode(variable.vyos_config)}", self.raw)
+
+    def test_installer_vapp_keys_match_the_tested_image_contract(self) -> None:
+        expected = {
+            "ROOT_PASSWORD",
+            "LOCAL_USER_PASSWORD",
+            "vami.hostname",
+            "guestinfo.ntp",
+            "vami.ip_address_version",
+            "vami.ip0",
+            "vami.netmask0",
+            "vami.gateway",
+            "vami.domain",
+            "vami.searchpath",
+            "vami.DNS",
+        }
+        properties = validate_blueprint.property_map(self.resources["Installer_VM"])
+
+        self.assertEqual(expected, set(properties))
+        self.assertFalse(any("SDDC-Manager" in key for key in properties))
+        for key in ("ROOT_PASSWORD", "LOCAL_USER_PASSWORD"):
+            self.assertEqual(
+                {
+                    "name": "${resource.Bootstrap_Secrets.manifest.metadata.name}",
+                    "key": "lab-password",
+                },
+                properties[key]["from"],
+            )
+        self.assertEqual("IPv4", properties["vami.ip_address_version"]["value"])
+        self.assertEqual(
+            "${to_string(variable.installer_settings.ip)}",
+            properties["vami.ip0"]["value"],
+        )
+        self.assertEqual("255.255.255.0", properties["vami.netmask0"]["value"])
+        self.assertEqual(
+            "${to_string(variable.netlayout.mgmt.defaultgw)}",
+            properties["vami.gateway"]["value"],
+        )
+        for key in ("vami.domain", "vami.searchpath"):
+            self.assertEqual("${to_string(input.domain_name)}", properties[key]["value"])
+        for key in ("vami.DNS", "guestinfo.ntp"):
+            self.assertEqual(
+                "${to_string(variable.vyos_settings.mgmt_ip)}",
+                properties[key]["value"],
+            )
 
     def test_windows_routes_are_persistent_first_logon_commands(self) -> None:
         spec = self.resources["Jumphost_VM"]["properties"]["manifest"]["spec"]
