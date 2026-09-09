@@ -1105,25 +1105,25 @@ resources:
                 - key: guestinfo.ntp
                   value:
                     value: ${to_string(variable.vyos_settings.mgmt_ip)}
-                - key: vami.ip_address_version.SDDC-Manager
+                - key: vami.ip_address_version
                   value:
                     value: IPv4
-                - key: vami.ip0.SDDC-Manager
+                - key: vami.ip0
                   value:
                     value: ${to_string(variable.installer_settings.ip)}
-                - key: vami.netmask0.SDDC-Manager
+                - key: vami.netmask0
                   value:
                     value: 255.255.255.0
-                - key: vami.gateway.SDDC-Manager
+                - key: vami.gateway
                   value:
                     value: ${to_string(variable.netlayout.mgmt.defaultgw)}
-                - key: vami.domain.SDDC-Manager
+                - key: vami.domain
                   value:
                     value: ${to_string(input.domain_name)}
-                - key: vami.searchpath.SDDC-Manager
+                - key: vami.searchpath
                   value:
                     value: ${to_string(input.domain_name)}
-                - key: vami.DNS.SDDC-Manager
+                - key: vami.DNS
                   value:
                     value: ${to_string(variable.vyos_settings.mgmt_ip)}
   # --- Windows Jumphost VM ---
