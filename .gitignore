@@ -15,6 +15,7 @@ settings.xml
 !.env.example
 *.local.yaml
 *.local.json
+/vcf-deployment*.json
 
 # Editor and operating-system state
 .idea/

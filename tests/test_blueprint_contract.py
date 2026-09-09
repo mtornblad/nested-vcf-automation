@@ -62,6 +62,60 @@ class BlueprintContractTests(unittest.TestCase):
             definition = self.blueprint["inputs"][name]
             self.assertTrue(definition["encrypted"])
             self.assertNotIn("default", definition)
+        self.assertEqual(15, self.blueprint["inputs"]["lab_password"]["minLength"])
+
+    def test_esxi_vapp_keys_match_the_ovf_image_contract(self) -> None:
+        expected = {
+            "hostname",
+            "password",
+            "ipaddress",
+            "netmask",
+            "gateway",
+            "dns",
+            "domain",
+            "ntp",
+            "vlan",
+            "ssh",
+        }
+        for resource_name in ("VM_ESXs", "VM_ESXs_Boot_Only"):
+            keys = validate_blueprint.property_keys(self.resources[resource_name])
+            self.assertEqual(len(keys), len(set(keys)))
+            self.assertEqual(expected, set(keys))
+            self.assertFalse(any(key.startswith("guestinfo.") for key in keys))
+
+    def test_optional_vsan_capacity_disk_uses_per_host_nvme_block_storage(self) -> None:
+        inputs = self.blueprint["inputs"]
+        self.assertTrue(inputs["esx_vsan_disk_enabled"]["default"])
+        self.assertEqual(1, inputs["esx_vsan_disk_size_gib"]["minimum"])
+
+        disk_resource = self.resources["ESXi_VSAN_Disks"]
+        self.assertTrue(disk_resource["allocatePerInstance"])
+        self.assertEqual(
+            "${variable.esx_settings.vsan_disk.enabled == true ? "
+            "length(variable.esx_settings.servers) : 0}",
+            disk_resource["properties"]["count"],
+        )
+        disk_spec = disk_resource["properties"]["manifest"]["spec"]
+        self.assertEqual("Block", disk_spec["volumeMode"])
+
+        esxi = self.resources["VM_ESXs"]["properties"]["manifest"]
+        self.assertEqual("vmoperator.vmware.com/v1alpha5", esxi["apiVersion"])
+        self.assertEqual(
+            [{"busNumber": 0, "sharingMode": "None"}],
+            esxi["spec"]["hardware"]["nvmeControllers"],
+        )
+        volume = esxi["spec"]["volumes"][0]
+        self.assertEqual("NVME", volume["controllerType"])
+        self.assertEqual(0, volume["controllerBusNumber"])
+        self.assertEqual(0, volume["unitNumber"])
+
+        boot_only = self.resources["VM_ESXs_Boot_Only"]["properties"]
+        self.assertEqual(
+            "${variable.esx_settings.vsan_disk.enabled == true ? 0 : "
+            "length(variable.esx_settings.servers)}",
+            boot_only["count"],
+        )
+        self.assertNotIn("volumes", boot_only["manifest"]["spec"])
 
     def test_generated_json_uses_single_iterator_template_loops(self) -> None:
         self.assertIsNone(
@@ -83,6 +137,36 @@ class BlueprintContractTests(unittest.TestCase):
         )
         self.assertIn(
             "%{if address != variable.vcf_settings.automation.ip_pool[0]},%{endif}",
+            template,
+        )
+
+    def test_vcf_vlan_ids_render_as_json_numbers(self) -> None:
+        template = self.blueprint["outputs"]["vcf_deployment_json"]["value"]
+        for expression in (
+            '"vlanId": ${variable.netlayout.mgmt.vlanid}',
+            '"vlanId": ${variable.netlayout.vmotion.vlanid}',
+            '"vlanId": ${variable.netlayout.vsan.vlanid}',
+            '"transportVlanId": ${variable.netlayout.tep.vlanid}',
+            '"vlan": ${variable.netlayout.vpc.vlanid}',
+        ):
+            self.assertIn(expression, template)
+            self.assertNotIn(expression.replace(": $", ': "$') + '"', template)
+
+    def test_internal_cluster_networks_are_distinct_and_configurable(self) -> None:
+        settings = self.blueprint["variables"]["vcf_settings"]
+        vsp_cidr = settings["vsp"]["internal_cluster_cidr"]
+        automation_cidr = settings["automation"]["internal_cluster_cidr"]
+        self.assertNotEqual(vsp_cidr, automation_cidr)
+
+        template = self.blueprint["outputs"]["vcf_deployment_json"]["value"]
+        self.assertIn(
+            '"internalClusterCidrIpv4": '
+            '"${variable.vcf_settings.vsp.internal_cluster_cidr}"',
+            template,
+        )
+        self.assertIn(
+            '"internalClusterCidr": '
+            '"${variable.vcf_settings.automation.internal_cluster_cidr}"',
             template,
         )
 

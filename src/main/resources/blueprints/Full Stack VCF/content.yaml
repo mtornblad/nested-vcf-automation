@@ -24,18 +24,29 @@ inputs:
     type: string
     title: Upstream NTP Server
     default: time1.vyos.net
-    description: IP-adress eller FQDN till den NTP-server som VyOS ska synkronisera mot
+    description: IP address or FQDN of the upstream NTP server used by VyOS
   install_automation:
     type: boolean
     title: Install Aria Automation (Day 2)
     default: false
-    description: Inkludera Aria Automation i genererad VCF JSON
+    description: Include VCF Automation in the generated VCF deployment specification
+  esx_vsan_disk_enabled:
+    type: boolean
+    title: Add Nested vSAN Disk
+    default: true
+    description: Create and attach one additional NVMe block volume to every nested ESXi host
+  esx_vsan_disk_size_gib:
+    type: integer
+    title: Nested vSAN Disk Size (GiB)
+    default: 100
+    minimum: 1
+    description: Capacity of the additional NVMe block volume attached to each nested ESXi host
   lab_password:
     type: string
     title: Shared Lab Password
     encrypted: true
-    minLength: 12
-    description: Shared credential for this disposable lab deployment
+    minLength: 15
+    description: Shared credential for this disposable lab deployment; must satisfy all VCF component password policies
   vyos_rest_api_key:
     type: string
     title: VyOS REST API Key
@@ -91,6 +102,11 @@ variables:
   esx_settings:
     vm_image: vmi-ade283728d7174041
     vm_class: nested-esx-small
+    vsan_disk:
+      enabled: ${input.esx_vsan_disk_enabled}
+      size: ${to_string(input.esx_vsan_disk_size_gib)}Gi
+      storage_class: ${variable.namespace_settings.storage.policy}
+      claim_suffix: vsan-capacity
     credentials:
       username: root
       password: ${input.lab_password}
@@ -124,6 +140,7 @@ variables:
       ip_pool:
         start: ${variable.net_prefix}.110
         end: ${variable.net_prefix}.199
+      internal_cluster_cidr: 240.0.0.0/15
       system_user_password: ${input.lab_password}
     nsx:
       admin_password: ${input.lab_password}
@@ -143,6 +160,7 @@ variables:
       ssh_password: ${input.lab_password}
     automation:
       admin_password: ${input.lab_password}
+      internal_cluster_cidr: 198.18.0.0/15
       ip_pool:
         - ${variable.net_prefix}.20
         - ${variable.net_prefix}.21
@@ -830,8 +848,129 @@ resources:
             conditions:
               - type: VirtualMachineCreated
                 status: 'True'
-  # --- ESXi Hosts ---
+  # --- Optional vSAN capacity disks ---
+  ESXi_VSAN_Disks:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Namespace
+    metadata:
+      layoutPosition:
+        - 2
+        - 1
+    allocatePerInstance: true
+    properties:
+      count: '${variable.esx_settings.vsan_disk.enabled == true ? length(variable.esx_settings.servers) : 0}'
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: ${variable.esx_settings.servers[count.index].name}-${variable.esx_settings.vsan_disk.claim_suffix}
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          volumeMode: Block
+          storageClassName: ${variable.esx_settings.vsan_disk.storage_class}
+          resources:
+            requests:
+              storage: ${variable.esx_settings.vsan_disk.size}
+  # --- ESXi Hosts with a vSAN capacity disk ---
   VM_ESXs:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Subnet_trunk
+      - SubnetConnectionBindingMap_mgmt
+      - SubnetConnectionBindingMap_vmotion
+      - SubnetConnectionBindingMap_vsan
+      - SubnetConnectionBindingMap_tep
+      - SubnetConnectionBindingMap_vpc
+      - VyOS_Machine
+      - Bootstrap_Secrets
+      - ESXi_VSAN_Disks
+    metadata:
+      layoutPosition:
+        - 3
+        - 1
+    allocatePerInstance: true
+    properties:
+      count: '${variable.esx_settings.vsan_disk.enabled == true ? length(variable.esx_settings.servers) : 0}'
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: vmoperator.vmware.com/v1alpha5
+        kind: VirtualMachine
+        metadata:
+          name: ${variable.esx_settings.servers[count.index].name}
+        spec:
+          className: ${variable.esx_settings.vm_class}
+          imageName: ${variable.esx_settings.vm_image}
+          powerState: PoweredOn
+          storageClass: ${variable.namespace_settings.storage.policy}
+          hardware:
+            nvmeControllers:
+              - busNumber: 0
+                sharingMode: None
+          volumes:
+            - name: vsan-capacity
+              controllerType: NVME
+              controllerBusNumber: 0
+              unitNumber: 0
+              diskMode: IndependentPersistent
+              sharingMode: None
+              persistentVolumeClaim:
+                claimName: ${variable.esx_settings.servers[count.index].name}-${variable.esx_settings.vsan_disk.claim_suffix}
+          network:
+            interfaces:
+              - name: eth0
+                network:
+                  apiVersion: crd.nsx.vmware.com/v1alpha1
+                  kind: Subnet
+                  name: ${variable.netlayout.trunk.name}
+              - name: eth1
+                network:
+                  apiVersion: crd.nsx.vmware.com/v1alpha1
+                  kind: Subnet
+                  name: ${variable.netlayout.trunk.name}
+          bootstrap:
+            vAppConfig:
+              properties:
+                - key: password
+                  value:
+                    from:
+                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
+                      key: lab-password
+                - key: ipaddress
+                  value:
+                    value: ${to_string(variable.esx_settings.servers[count.index].ip)}
+                - key: netmask
+                  value:
+                    value: 255.255.255.0
+                - key: gateway
+                  value:
+                    value: ${to_string(variable.netlayout.mgmt.defaultgw)}
+                - key: hostname
+                  value:
+                    value: ${variable.esx_settings.servers[count.index].name}.${input.domain_name}
+                - key: dns
+                  value:
+                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
+                - key: domain
+                  value:
+                    value: ${to_string(input.domain_name)}
+                - key: ntp
+                  value:
+                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
+                - key: ssh
+                  value:
+                    value: 'true'
+                - key: vlan
+                  value:
+                    value: ${to_string(variable.netlayout.mgmt.vlanid)}
+          wait:
+            conditions:
+              - type: VirtualMachineCreated
+                status: 'True'
+  # --- ESXi Hosts without a vSAN capacity disk ---
+  VM_ESXs_Boot_Only:
     type: CCI.Supervisor.Resource
     dependsOn:
       - Subnet_trunk
@@ -844,14 +983,14 @@ resources:
       - Bootstrap_Secrets
     metadata:
       layoutPosition:
-        - 3
+        - 4
         - 1
     allocatePerInstance: true
     properties:
-      count: ${length(variable.esx_settings.servers)}
+      count: '${variable.esx_settings.vsan_disk.enabled == true ? 0 : length(variable.esx_settings.servers)}'
       context: ${resource.Namespace.id}
       manifest:
-        apiVersion: vmoperator.vmware.com/v1alpha3
+        apiVersion: vmoperator.vmware.com/v1alpha5
         kind: VirtualMachine
         metadata:
           name: ${variable.esx_settings.servers[count.index].name}
@@ -875,36 +1014,36 @@ resources:
           bootstrap:
             vAppConfig:
               properties:
-                - key: guestinfo.password
+                - key: password
                   value:
                     from:
                       name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
                       key: lab-password
-                - key: guestinfo.ipaddress
+                - key: ipaddress
                   value:
                     value: ${to_string(variable.esx_settings.servers[count.index].ip)}
-                - key: guestinfo.netmask
+                - key: netmask
                   value:
                     value: 255.255.255.0
-                - key: guestinfo.gateway
+                - key: gateway
                   value:
                     value: ${to_string(variable.netlayout.mgmt.defaultgw)}
-                - key: guestinfo.hostname
+                - key: hostname
                   value:
                     value: ${variable.esx_settings.servers[count.index].name}.${input.domain_name}
-                - key: guestinfo.dns
+                - key: dns
                   value:
                     value: ${to_string(variable.vyos_settings.mgmt_ip)}
-                - key: guestinfo.domain
+                - key: domain
                   value:
                     value: ${to_string(input.domain_name)}
-                - key: guestinfo.ntp
+                - key: ntp
                   value:
                     value: ${to_string(variable.vyos_settings.mgmt_ip)}
-                - key: guestinfo.ssh
+                - key: ssh
                   value:
                     value: 'true'
-                - key: guestinfo.vlan
+                - key: vlan
                   value:
                     value: ${to_string(variable.netlayout.mgmt.vlanid)}
           wait:
@@ -1143,7 +1282,7 @@ outputs:
             "ipAddressVersion": "IPv4",
             "subnet": "${variable.netlayout.mgmt.ipaddresses}",
             "gateway": "${variable.netlayout.mgmt.defaultgw}",
-            "vlanId": "${variable.netlayout.mgmt.vlanid}",
+            "vlanId": ${variable.netlayout.mgmt.vlanid},
             "activeUplinks": [
               "uplink1",
               "uplink2"
@@ -1157,7 +1296,7 @@ outputs:
             "ipAddressVersion": "IPv4",
             "subnet": "${variable.netlayout.vmotion.ipaddresses}",
             "gateway": "${variable.netlayout.vmotion.defaultgw}",
-            "vlanId": "${variable.netlayout.vmotion.vlanid}",
+            "vlanId": ${variable.netlayout.vmotion.vlanid},
             "mtu": 9000,
             "includeIpAddressRanges": [
               {
@@ -1178,7 +1317,7 @@ outputs:
             "ipAddressVersion": "IPv4",
             "subnet": "${variable.netlayout.vsan.ipaddresses}",
             "gateway": "${variable.netlayout.vsan.defaultgw}",
-            "vlanId": "${variable.netlayout.vsan.vlanid}",
+            "vlanId": ${variable.netlayout.vsan.vlanid},
             "mtu": 9000,
             "includeIpAddressRanges": [
               {
@@ -1208,11 +1347,11 @@ outputs:
           "systemUserPassword": "${variable.vcf_settings.vsp.system_user_password}",
           "size": "small",
           "name": "vmsp-01",
-          "internalClusterCidrIpv4": "198.18.0.0/15"
+          "internalClusterCidrIpv4": "${variable.vcf_settings.vsp.internal_cluster_cidr}"
         },
         "nsxtSpec": {
           "vipFqdn": "${input.dns_prefix}nsx01.${input.domain_name}",
-          "transportVlanId": "${variable.netlayout.tep.vlanid}",
+          "transportVlanId": ${variable.netlayout.tep.vlanid},
           "ipAddressPoolSpec": {
             "name": "${variable.netlayout.tep.ip_pool.name}",
             "description": "${variable.netlayout.tep.ip_pool.description}",
@@ -1236,7 +1375,7 @@ outputs:
           "useExistingDeployment": false,
           "vpcSpec": {
             "dtgwSpec": {
-              "vlan": "${variable.netlayout.vpc.vlanid}",
+              "vlan": ${variable.netlayout.vpc.vlanid},
               "gatewayCidr": "${variable.netlayout.vpc.defaultgw}/24",
               "externalIpBlockCidr": "${variable.netlayout.vpc.ipaddresses}",
               "privateTgwIpBlockCidr": "172.31.0.0/16"
@@ -1368,7 +1507,7 @@ outputs:
           "platformFqdn": "${input.dns_prefix}auto-platform.${input.domain_name}",
           "adminUserPassword": "${variable.vcf_settings.automation.admin_password}",
           "nodePrefix": "mgmt-node-01",
-          "internalClusterCidr": "198.18.0.0/15",
+          "internalClusterCidr": "${variable.vcf_settings.automation.internal_cluster_cidr}",
           "useExistingDeployment": false,
           "size": "small"
         }%{endif}

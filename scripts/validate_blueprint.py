@@ -78,6 +78,17 @@ def property_map(resource: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {item["key"]: item.get("value", {}) for item in properties}
 
 
+def property_keys(resource: dict[str, Any]) -> list[str]:
+    """Return vApp keys without hiding duplicates through dictionary coercion."""
+
+    return [
+        item["key"]
+        for item in resource["properties"]["manifest"]["spec"]["bootstrap"][
+            "vAppConfig"
+        ]["properties"]
+    ]
+
+
 def _sensitive_values(
     value: Any,
     path: tuple[str, ...] = (),
@@ -118,6 +129,10 @@ def validate() -> list[str]:
         definition = inputs.get(name, {})
         require(definition.get("encrypted") is True, f"{name} must be encrypted")
         require("default" not in definition, f"{name} must not have a default")
+    require(
+        inputs.get("lab_password", {}).get("minLength") == 15,
+        "lab_password must satisfy the 15-character VCF service minimum",
+    )
 
     variables = blueprint.get("variables", {})
     allowed = {"${input.lab_password}", "${input.vyos_rest_api_key}"}
@@ -189,6 +204,126 @@ def validate() -> list[str]:
         "VCF Installer must use its qualified DNS property",
     )
 
+    # VM Operator prefixes vApp property keys with guestinfo when it exposes
+    # them to the guest. The blueprint key must therefore match the OVF image
+    # property exactly and must not carry a second guestinfo prefix.
+    esxi_ovf_keys = {
+        "hostname",
+        "password",
+        "ipaddress",
+        "netmask",
+        "gateway",
+        "dns",
+        "domain",
+        "ntp",
+        "vlan",
+        "ssh",
+    }
+    for resource_name in ("VM_ESXs", "VM_ESXs_Boot_Only"):
+        resource = resources.get(resource_name, {})
+        keys = property_keys(resource)
+        require(len(keys) == len(set(keys)), f"{resource_name} has duplicate vApp keys")
+        require(set(keys) == esxi_ovf_keys, f"{resource_name} vApp keys do not match the ESXi OVF")
+        require(
+            all(not key.startswith("guestinfo.") for key in keys),
+            f"{resource_name} must use unqualified OVF keys",
+        )
+
+    vsan_enabled = inputs.get("esx_vsan_disk_enabled", {})
+    vsan_size = inputs.get("esx_vsan_disk_size_gib", {})
+    require(vsan_enabled.get("type") == "boolean", "vSAN disk enable input must be boolean")
+    require(
+        vsan_enabled.get("default") is True,
+        "vSAN capacity disk must be enabled by default",
+    )
+    require(vsan_size.get("type") == "integer", "vSAN disk size input must be an integer")
+    require(vsan_size.get("minimum") == 1, "vSAN disk size must be at least 1 GiB")
+
+    disk_resource = resources.get("ESXi_VSAN_Disks", {})
+    disk_properties = disk_resource.get("properties", {})
+    disk_manifest = disk_properties.get("manifest", {})
+    disk_spec = disk_manifest.get("spec", {})
+    require(
+        disk_resource.get("allocatePerInstance") is True,
+        "vSAN PVCs must allocate per ESXi",
+    )
+    require(
+        disk_manifest.get("kind") == "PersistentVolumeClaim",
+        "vSAN disk PVC resource missing",
+    )
+    require(disk_spec.get("volumeMode") == "Block", "vSAN PVCs must use raw block volumes")
+    require(
+        disk_properties.get("count")
+        == (
+            "${variable.esx_settings.vsan_disk.enabled == true ? "
+            "length(variable.esx_settings.servers) : 0}"
+        ),
+        "vSAN PVC count must follow the ESXi server list and enable flag",
+    )
+
+    with_vsan = resources.get("VM_ESXs", {}).get("properties", {})
+    without_vsan = resources.get("VM_ESXs_Boot_Only", {}).get("properties", {})
+    with_vsan_spec = with_vsan.get("manifest", {}).get("spec", {})
+    require(
+        with_vsan.get("count")
+        == (
+            "${variable.esx_settings.vsan_disk.enabled == true ? "
+            "length(variable.esx_settings.servers) : 0}"
+        ),
+        "vSAN-enabled ESXi count must follow the server list and enable flag",
+    )
+    require(
+        without_vsan.get("count")
+        == (
+            "${variable.esx_settings.vsan_disk.enabled == true ? 0 : "
+            "length(variable.esx_settings.servers)}"
+        ),
+        "boot-only ESXi count must be the inverse of the enable flag",
+    )
+    require(
+        with_vsan.get("manifest", {}).get("apiVersion")
+        == "vmoperator.vmware.com/v1alpha5",
+        "vSAN-enabled ESXi must use VM Operator v1alpha5",
+    )
+    require(
+        without_vsan.get("manifest", {}).get("apiVersion")
+        == "vmoperator.vmware.com/v1alpha5",
+        "boot-only ESXi must use VM Operator v1alpha5",
+    )
+    nvme_controllers = with_vsan_spec.get("hardware", {}).get("nvmeControllers", [])
+    require(
+        nvme_controllers == [{"busNumber": 0, "sharingMode": "None"}],
+        "vSAN-enabled ESXi must define NVMe controller 0",
+    )
+    volumes = with_vsan_spec.get("volumes", [])
+    require(
+        len(volumes) == 1,
+        "vSAN-enabled ESXi must attach exactly one capacity volume",
+    )
+    if len(volumes) == 1:
+        volume = volumes[0]
+        require(
+            volume.get("controllerType") == "NVME",
+            "vSAN capacity volume must use NVMe",
+        )
+        require(
+            volume.get("controllerBusNumber") == 0,
+            "vSAN capacity volume must use bus 0",
+        )
+        require(volume.get("unitNumber") == 0, "vSAN capacity volume must use unit 0")
+        require(
+            volume.get("persistentVolumeClaim", {}).get("claimName")
+            == (
+                "${variable.esx_settings.servers[count.index].name}-"
+                "${variable.esx_settings.vsan_disk.claim_suffix}"
+            ),
+            "vSAN capacity volume must reference its per-host PVC",
+        )
+    require(
+        "volumes" not in without_vsan.get("manifest", {}).get("spec", {}),
+        "boot-only ESXi must not attach the optional vSAN volume",
+    )
+
     # VCF Automation's block-template renderer supports a single iterator in
     # these loops. A Terraform-style ``index, value`` declaration silently
     # renders the value as null and also breaks comma insertion.
@@ -217,6 +352,47 @@ def validate() -> list[str]:
         "%{if address != variable.vcf_settings.automation.ip_pool[0]},%{endif}"
         in deployment_json,
         "vcfAutomationSpec.ipPool must delimit every address after the first",
+    )
+    numeric_vlan_expressions = (
+        '"vlanId": ${variable.netlayout.mgmt.vlanid}',
+        '"vlanId": ${variable.netlayout.vmotion.vlanid}',
+        '"vlanId": ${variable.netlayout.vsan.vlanid}',
+        '"transportVlanId": ${variable.netlayout.tep.vlanid}',
+        '"vlan": ${variable.netlayout.vpc.vlanid}',
+    )
+    for expression in numeric_vlan_expressions:
+        require(
+            expression in deployment_json,
+            f"VCF Installer VLAN expression must render as an integer: {expression}",
+        )
+    vcf_settings = variables.get("vcf_settings", {})
+    vsp_internal_cidr = vcf_settings.get("vsp", {}).get("internal_cluster_cidr")
+    automation_internal_cidr = vcf_settings.get("automation", {}).get(
+        "internal_cluster_cidr"
+    )
+    require(
+        isinstance(vsp_internal_cidr, str) and bool(vsp_internal_cidr),
+        "VCF Services internal cluster CIDR must be configured",
+    )
+    require(
+        isinstance(automation_internal_cidr, str) and bool(automation_internal_cidr),
+        "VCF Automation internal cluster CIDR must be configured",
+    )
+    require(
+        vsp_internal_cidr != automation_internal_cidr,
+        "VCF Services and VCF Automation internal cluster CIDRs must differ",
+    )
+    require(
+        '"internalClusterCidrIpv4": '
+        '"${variable.vcf_settings.vsp.internal_cluster_cidr}"'
+        in deployment_json,
+        "vspClusterSpec must use its configured internal cluster CIDR",
+    )
+    require(
+        '"internalClusterCidr": '
+        '"${variable.vcf_settings.automation.internal_cluster_cidr}"'
+        in deployment_json,
+        "vcfAutomationSpec must use its configured internal cluster CIDR",
     )
 
     return errors
