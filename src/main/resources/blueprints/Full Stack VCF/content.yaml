@@ -933,36 +933,36 @@ resources:
           bootstrap:
             vAppConfig:
               properties:
-                - key: password
+                - key: guestinfo.password
                   value:
                     from:
                       name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
                       key: lab-password
-                - key: ipaddress
+                - key: guestinfo.ipaddress
                   value:
                     value: ${to_string(variable.esx_settings.servers[count.index].ip)}
-                - key: netmask
+                - key: guestinfo.netmask
                   value:
                     value: 255.255.255.0
-                - key: gateway
+                - key: guestinfo.gateway
                   value:
                     value: ${to_string(variable.netlayout.mgmt.defaultgw)}
-                - key: hostname
+                - key: guestinfo.hostname
                   value:
                     value: ${variable.esx_settings.servers[count.index].name}.${input.domain_name}
-                - key: dns
+                - key: guestinfo.dns
                   value:
                     value: ${to_string(variable.vyos_settings.mgmt_ip)}
-                - key: domain
+                - key: guestinfo.domain
                   value:
                     value: ${to_string(input.domain_name)}
-                - key: ntp
+                - key: guestinfo.ntp
                   value:
                     value: ${to_string(variable.vyos_settings.mgmt_ip)}
-                - key: ssh
+                - key: guestinfo.ssh
                   value:
                     value: 'true'
-                - key: vlan
+                - key: guestinfo.vlan
                   value:
                     value: ${to_string(variable.netlayout.mgmt.vlanid)}
           wait:
@@ -1014,36 +1014,36 @@ resources:
           bootstrap:
             vAppConfig:
               properties:
-                - key: password
+                - key: guestinfo.password
                   value:
                     from:
                       name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
                       key: lab-password
-                - key: ipaddress
+                - key: guestinfo.ipaddress
                   value:
                     value: ${to_string(variable.esx_settings.servers[count.index].ip)}
-                - key: netmask
+                - key: guestinfo.netmask
                   value:
                     value: 255.255.255.0
-                - key: gateway
+                - key: guestinfo.gateway
                   value:
                     value: ${to_string(variable.netlayout.mgmt.defaultgw)}
-                - key: hostname
+                - key: guestinfo.hostname
                   value:
                     value: ${variable.esx_settings.servers[count.index].name}.${input.domain_name}
-                - key: dns
+                - key: guestinfo.dns
                   value:
                     value: ${to_string(variable.vyos_settings.mgmt_ip)}
-                - key: domain
+                - key: guestinfo.domain
                   value:
                     value: ${to_string(input.domain_name)}
-                - key: ntp
+                - key: guestinfo.ntp
                   value:
                     value: ${to_string(variable.vyos_settings.mgmt_ip)}
-                - key: ssh
+                - key: guestinfo.ssh
                   value:
                     value: 'true'
-                - key: vlan
+                - key: guestinfo.vlan
                   value:
                     value: ${to_string(variable.netlayout.mgmt.vlanid)}
           wait:
@@ -1105,25 +1105,25 @@ resources:
                 - key: guestinfo.ntp
                   value:
                     value: ${to_string(variable.vyos_settings.mgmt_ip)}
-                - key: vami.ip_address_version
+                - key: ip_address_version
                   value:
                     value: IPv4
-                - key: vami.ip0
+                - key: ip0
                   value:
                     value: ${to_string(variable.installer_settings.ip)}
-                - key: vami.netmask0
+                - key: netmask0
                   value:
                     value: 255.255.255.0
-                - key: vami.gateway
+                - key: gateway
                   value:
                     value: ${to_string(variable.netlayout.mgmt.defaultgw)}
-                - key: vami.domain
+                - key: domain
                   value:
                     value: ${to_string(input.domain_name)}
-                - key: vami.searchpath
+                - key: searchpath
                   value:
                     value: ${to_string(input.domain_name)}
-                - key: vami.DNS
+                - key: DNS
                   value:
                     value: ${to_string(variable.vyos_settings.mgmt_ip)}
   # --- Windows Jumphost VM ---
