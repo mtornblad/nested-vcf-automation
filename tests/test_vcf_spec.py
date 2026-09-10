@@ -122,6 +122,26 @@ class VcfSpecTests(unittest.TestCase):
 
         self.assertTrue(any("JSON integer" in error for error in errors))
 
+    def test_network_and_dvs_mtu_must_be_supported_json_integers(self) -> None:
+        spec = valid_spec()
+        spec["networkSpecs"][1]["mtu"] = "8000"  # type: ignore[index]
+        spec["networkSpecs"][2]["mtu"] = 1500  # type: ignore[index]
+        spec["dvsSpecs"] = [{"dvsName": "vds01", "mtu": 9001}]
+
+        errors = validate_vcf_spec.validate_spec(spec)
+
+        self.assertIn("networkSpecs[1].mtu must be a JSON integer", errors)
+        self.assertIn("networkSpecs[2].mtu must be between 1600 and 9000", errors)
+        self.assertIn("dvsSpecs[0].mtu must be between 1600 and 9000", errors)
+
+    def test_sddc_manager_hostname_must_be_an_fqdn(self) -> None:
+        spec = valid_spec()
+        spec["sddcManagerSpec"] = {"hostname": "sddc-manager"}
+
+        errors = validate_vcf_spec.validate_spec(spec)
+
+        self.assertIn("sddcManagerSpec.hostname must be an FQDN", errors)
+
     def test_nsx_vlan_ids_must_be_json_integers(self) -> None:
         spec = valid_spec()
         spec["nsxtSpec"] = {

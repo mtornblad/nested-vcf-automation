@@ -18,7 +18,8 @@ Current runtime behavior includes:
 - VyOS using its local forwarding service for its own name resolution;
 - authoritative forward and reverse DNS records generated in the VyOS
   `config_base64` payload;
-- encrypted request inputs for the shared lab password and VyOS REST key;
+- explicit plaintext request inputs for the disposable lab password and VyOS
+  REST key, with no committed defaults;
 - dynamic ESXi resource count and VCF `hostSpecs` from one server list;
 - an optional, size-controlled NVMe capacity disk per nested ESXi host; and
 - source checks for secret defaults, vApp property contracts, networking, and
@@ -81,12 +82,19 @@ Before publishing to another environment, review all structured variables in
 the blueprint, especially:
 
 - region, zone, namespace class, storage policy, and quotas;
-- VPC, subnet, VLAN, address-pool, DNS, and NTP settings;
+- VPC, subnet, VLAN, address-pool, DNS, NTP, and end-to-end MTU settings;
 - VyOS, Windows, VCF Installer, and nested ESXi image IDs and VM classes; and
 - the ESXi server list and optional VCF Automation deployment flag.
 
-The encrypted shared lab password has a 15-character minimum because VCF
+The plaintext shared lab password has a 15-character minimum because VCF
 Services and VCF Automation impose the strictest minimum among the consumers.
+It is intentionally convenient for this disposable lab: the request and
+rendered output expose it. Do not reuse this credential model for production.
+
+`fabric_mtu` defaults to 8000 and is applied to the VyOS trunk and all five
+tagged interfaces, the vMotion and vSAN network specifications, and the VCF
+distributed switch. Override it only with a value verified end to end; the
+accepted range is 1600 through 9000.
 
 ## Nested ESXi vSAN capacity
 
@@ -104,15 +112,17 @@ requested hardware. See the
 [VM Operator workload documentation](https://vm-operator.readthedocs.io/en/docs-stable/concepts/workloads/vm/)
 for the PVC volume and controller contract.
 
-The ESXi image advertises unqualified OVF keys such as `hostname`, `password`,
-and `ipaddress`. Those exact keys belong in `spec.bootstrap.vAppConfig`;
-VM Operator exposes them inside the guest with the `guestinfo.` prefix.
+The tested nested ESXi image expects these exact VM Operator bootstrap keys:
+`guestinfo.hostname`, `guestinfo.password`, `guestinfo.ipaddress`,
+`guestinfo.netmask`, `guestinfo.gateway`, `guestinfo.dns`, `guestinfo.domain`,
+`guestinfo.ntp`, `guestinfo.vlan`, and `guestinfo.ssh`. Preserve the prefixes;
+they are part of the working image contract.
 
-The tested VCF Installer 9.1 image contract uses `vami.ip0`,
-`vami.netmask0`, `vami.gateway`, `vami.domain`, `vami.searchpath`, and
-uppercase `vami.DNS`. Do not append `.SDDC-Manager` to these VM Operator
-bootstrap keys. Passwords use `ROOT_PASSWORD` and `LOCAL_USER_PASSWORD`, while
-hostname and NTP use `vami.hostname` and `guestinfo.ntp` respectively.
+The tested VCF Installer 9.1 image uses the mixed key set `ROOT_PASSWORD`,
+`LOCAL_USER_PASSWORD`, `vami.hostname`, `guestinfo.ntp`,
+`ip_address_version`, `ip0`, `netmask0`, `gateway`, `domain`, `searchpath`, and
+uppercase `DNS`. Do not add `vami.` to the final seven keys and do not append
+`.SDDC-Manager` to any key.
 
 The image IDs must identify `ClusterVirtualMachineImage` objects available to
 the target namespace. The nested ESXi VM Class must expose hardware-assisted
@@ -143,20 +153,22 @@ Automation use separate configurable internal cluster CIDRs so the two
 embedded platform networks do not overlap (`240.0.0.0/15` and
 `198.18.0.0/15`, respectively, in the reference lab).
 
-Encrypted VCF Automation outputs can display values such as
-`((secret:v1:...))`. That is expected UI protection, but it is not a password
-that VCF Installer can consume. To check only structure before materializing
-credentials, use:
+The lab blueprint deliberately emits plaintext password values, so its output
+can be validated and handed directly to VCF Installer. Protect the file with
+mode `0600`, do not commit it, and remove it after use.
+
+If the inputs are changed back to encrypted values later, VCF Automation may
+emit references such as `((secret:v1:...))`. Those references are not passwords
+that VCF Installer can consume. The compatibility flag below checks structure
+only while such references are still present:
 
 ```bash
 python3 scripts/validate_vcf_spec.py \
   --allow-secret-references "$VCF_SPEC"
 ```
 
-Replace the protected references in a local `0600` copy, then run the validator
-again without the flag. Do not weaken the blueprint inputs to expose plaintext
-credentials in the deployment UI. The authoritative platform validation is
-the VCF Installer
+Replace the protected references, then run the validator again without the
+flag. The authoritative platform validation is the VCF Installer
 [`POST /v1/sddcs/validations`](https://developer.broadcom.com/xapis/vcf-installer-api/latest/v1/sddcs/validations/post/)
 API or the equivalent import step in its UI.
 

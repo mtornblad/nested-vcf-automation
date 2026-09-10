@@ -44,6 +44,7 @@ class BlueprintContractTests(unittest.TestCase):
         config = self.blueprint["variables"]["vyos_config"]
         self.assertIn("listen-address ${variable.vyos_settings.dns.local_resolver}", config)
         self.assertIn("allow-from 127.0.0.0/8", config)
+        self.assertIn("set service dns forwarding ignore-hosts-file", config)
 
     def test_installer_record_is_inside_the_base64_configuration(self) -> None:
         config = self.blueprint["variables"]["vyos_config"]
@@ -52,6 +53,11 @@ class BlueprintContractTests(unittest.TestCase):
             "${variable.installer_settings.ip}",
             config,
         )
+        self.assertIn(
+            "records ptr 10 target ${variable.installer_settings.fqdn}",
+            config,
+        )
+        self.assertNotIn("${input.dns_prefix}sddcm", config)
         self.assertIn("${base64_encode(variable.vyos_config)}", self.raw)
 
     def test_installer_vapp_keys_match_the_tested_image_contract(self) -> None:
@@ -60,13 +66,13 @@ class BlueprintContractTests(unittest.TestCase):
             "LOCAL_USER_PASSWORD",
             "vami.hostname",
             "guestinfo.ntp",
-            "vami.ip_address_version",
-            "vami.ip0",
-            "vami.netmask0",
-            "vami.gateway",
-            "vami.domain",
-            "vami.searchpath",
-            "vami.DNS",
+            "ip_address_version",
+            "ip0",
+            "netmask0",
+            "gateway",
+            "domain",
+            "searchpath",
+            "DNS",
         }
         properties = validate_blueprint.property_map(self.resources["Installer_VM"])
 
@@ -80,23 +86,30 @@ class BlueprintContractTests(unittest.TestCase):
                 },
                 properties[key]["from"],
             )
-        self.assertEqual("IPv4", properties["vami.ip_address_version"]["value"])
+        self.assertEqual(
+            "${variable.installer_settings.fqdn}",
+            properties["vami.hostname"]["value"],
+        )
+        self.assertEqual("IPv4", properties["ip_address_version"]["value"])
         self.assertEqual(
             "${to_string(variable.installer_settings.ip)}",
-            properties["vami.ip0"]["value"],
+            properties["ip0"]["value"],
         )
-        self.assertEqual("255.255.255.0", properties["vami.netmask0"]["value"])
+        self.assertEqual("255.255.255.0", properties["netmask0"]["value"])
         self.assertEqual(
             "${to_string(variable.netlayout.mgmt.defaultgw)}",
-            properties["vami.gateway"]["value"],
+            properties["gateway"]["value"],
         )
-        for key in ("vami.domain", "vami.searchpath"):
+        for key in ("domain", "searchpath"):
             self.assertEqual("${to_string(input.domain_name)}", properties[key]["value"])
-        for key in ("vami.DNS", "guestinfo.ntp"):
-            self.assertEqual(
-                "${to_string(variable.vyos_settings.mgmt_ip)}",
-                properties[key]["value"],
-            )
+        self.assertEqual(
+            "${to_string(variable.vyos_settings.mgmt_ip)}",
+            properties["DNS"]["value"],
+        )
+        self.assertEqual(
+            "${to_string(variable.vyos_settings.fqdn)}",
+            properties["guestinfo.ntp"]["value"],
+        )
 
     def test_windows_routes_are_persistent_first_logon_commands(self) -> None:
         spec = self.resources["Jumphost_VM"]["properties"]["manifest"]["spec"]
@@ -111,28 +124,72 @@ class BlueprintContractTests(unittest.TestCase):
     def test_credentials_are_request_inputs_without_defaults(self) -> None:
         for name in ("lab_password", "vyos_rest_api_key"):
             definition = self.blueprint["inputs"][name]
-            self.assertTrue(definition["encrypted"])
+            self.assertFalse(definition["encrypted"])
             self.assertNotIn("default", definition)
         self.assertEqual(15, self.blueprint["inputs"]["lab_password"]["minLength"])
 
     def test_esxi_vapp_keys_match_the_ovf_image_contract(self) -> None:
         expected = {
-            "hostname",
-            "password",
-            "ipaddress",
-            "netmask",
-            "gateway",
-            "dns",
-            "domain",
-            "ntp",
-            "vlan",
-            "ssh",
+            "guestinfo.hostname",
+            "guestinfo.password",
+            "guestinfo.ipaddress",
+            "guestinfo.netmask",
+            "guestinfo.gateway",
+            "guestinfo.dns",
+            "guestinfo.domain",
+            "guestinfo.ntp",
+            "guestinfo.vlan",
+            "guestinfo.ssh",
         }
         for resource_name in ("VM_ESXs", "VM_ESXs_Boot_Only"):
             keys = validate_blueprint.property_keys(self.resources[resource_name])
             self.assertEqual(len(keys), len(set(keys)))
             self.assertEqual(expected, set(keys))
-            self.assertFalse(any(key.startswith("guestinfo.") for key in keys))
+            self.assertTrue(all(key.startswith("guestinfo.") for key in keys))
+            properties = validate_blueprint.property_map(self.resources[resource_name])
+            self.assertEqual(
+                "${to_string(variable.vyos_settings.fqdn)}",
+                properties["guestinfo.ntp"]["value"],
+            )
+
+    def test_canonical_dns_and_ntp_identities_are_consistent(self) -> None:
+        variables = self.blueprint["variables"]
+        self.assertEqual(
+            "${input.dns_prefix}vyos01.${input.domain_name}",
+            variables["vyos_settings"]["fqdn"],
+        )
+        self.assertEqual(
+            "${input.dns_prefix}vcf-installer.${input.domain_name}",
+            variables["installer_settings"]["fqdn"],
+        )
+        template = self.blueprint["outputs"]["vcf_deployment_json"]["value"]
+        self.assertRegex(
+            template,
+            r'"ntpServers":\s*\[\s*"\$\{variable\.vyos_settings\.fqdn\}"\s*\]',
+        )
+        self.assertIn(
+            '"hostname": "${variable.installer_settings.fqdn}"',
+            template,
+        )
+
+    def test_fabric_mtu_is_applied_end_to_end(self) -> None:
+        definition = self.blueprint["inputs"]["fabric_mtu"]
+        self.assertEqual("integer", definition["type"])
+        self.assertEqual(8000, definition["default"])
+        self.assertEqual(1600, definition["minimum"])
+        self.assertEqual(9000, definition["maximum"])
+
+        variables = self.blueprint["variables"]
+        self.assertEqual("${input.fabric_mtu}", variables["netlayout"]["trunk"]["mtu"])
+        self.assertEqual(
+            6,
+            variables["vyos_config"].count("mtu ${variable.netlayout.trunk.mtu}"),
+        )
+        template = self.blueprint["outputs"]["vcf_deployment_json"]["value"]
+        self.assertEqual(
+            3,
+            template.count('"mtu": ${variable.netlayout.trunk.mtu}'),
+        )
 
     def test_optional_vsan_capacity_disk_uses_per_host_nvme_block_storage(self) -> None:
         inputs = self.blueprint["inputs"]

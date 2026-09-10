@@ -25,6 +25,13 @@ inputs:
     title: Upstream NTP Server
     default: time1.vyos.net
     description: IP address or FQDN of the upstream NTP server used by VyOS
+  fabric_mtu:
+    type: integer
+    title: Nested Fabric MTU
+    default: 8000
+    minimum: 1600
+    maximum: 9000
+    description: End-to-end MTU for the nested VyOS trunk, VCF system networks, and distributed switch; NSX overlay requires at least 1600
   install_automation:
     type: boolean
     title: Install Aria Automation (Day 2)
@@ -44,15 +51,15 @@ inputs:
   lab_password:
     type: string
     title: Shared Lab Password
-    encrypted: true
+    encrypted: false
     minLength: 15
-    description: Shared credential for this disposable lab deployment; must satisfy all VCF component password policies
+    description: Plaintext credential for this disposable lab deployment; visible in the request and generated JSON
   vyos_rest_api_key:
     type: string
     title: VyOS REST API Key
-    encrypted: true
+    encrypted: false
     minLength: 12
-    description: Full-access REST API key for the lab VyOS router
+    description: Plaintext full-access REST API key for the disposable lab VyOS router
 variables:
   bootstrap_secret_name: ${input.lab_name}-bootstrap-${env.shortDeploymentId}
   # --- Namespace & Environment Settings ---
@@ -82,6 +89,7 @@ variables:
     vm_image: vmi-576b17f7f8892d741
     vm_class: best-effort-medium
     hostname: ${input.dns_prefix}vyos01
+    fqdn: ${input.dns_prefix}vyos01.${input.domain_name}
     mgmt_ip: 172.16.0.2
     mgmt_mask: '24'
     mgmt_gw: 172.16.0.1
@@ -123,6 +131,7 @@ variables:
     vm_class: best-effort-xsmall
     ip: ${variable.net_prefix}.10
     hostname: ${input.dns_prefix}vcf-installer
+    fqdn: ${input.dns_prefix}vcf-installer.${input.domain_name}
     credentials:
       root_password: ${input.lab_password}
       local_user_password: ${input.lab_password}
@@ -299,6 +308,7 @@ variables:
       name: trunk
       ipaddresses: 172.16.100.0/24
       defaultgw: 172.16.100.1
+      mtu: ${input.fabric_mtu}
       description: Trunk interface for VyOS and ESXi
       access_mode: Private
       connectivity_state: Disconnected
@@ -323,12 +333,17 @@ variables:
   # --- VyOS supplemental configuration ---
   vyos_config: |
     set interfaces ethernet __TRUNK_INTERFACE__ address ${variable.netlayout.trunk.defaultgw}/24
-    set interfaces ethernet __TRUNK_INTERFACE__ mtu 8000
+    set interfaces ethernet __TRUNK_INTERFACE__ mtu ${variable.netlayout.trunk.mtu}
     set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.mgmt.vlanid} address ${variable.netlayout.mgmt.defaultgw}/24
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.mgmt.vlanid} mtu ${variable.netlayout.trunk.mtu}
     set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.vmotion.vlanid} address ${variable.netlayout.vmotion.defaultgw}/24
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.vmotion.vlanid} mtu ${variable.netlayout.trunk.mtu}
     set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.vsan.vlanid} address ${variable.netlayout.vsan.defaultgw}/24
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.vsan.vlanid} mtu ${variable.netlayout.trunk.mtu}
     set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.tep.vlanid} address ${variable.netlayout.tep.defaultgw}/24
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.tep.vlanid} mtu ${variable.netlayout.trunk.mtu}
     set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.vpc.vlanid} address ${variable.netlayout.vpc.defaultgw}/24
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.vpc.vlanid} mtu ${variable.netlayout.trunk.mtu}
     set nat source rule 100 outbound-interface name __MANAGEMENT_INTERFACE__
     set nat source rule 100 translation address masquerade
 
@@ -337,6 +352,7 @@ variables:
     set service dns forwarding allow-from 127.0.0.0/8
     set service dns forwarding allow-from ${variable.vyos_settings.dns.allow_from}
     set service dns forwarding name-server ${variable.vyos_settings.dns.forwarder}
+    set service dns forwarding ignore-hosts-file
 
     set service ntp listen-address ${variable.vyos_settings.mgmt_ip}
     set service ntp allow-client address ${variable.vyos_settings.ntp.allow_from}
@@ -353,7 +369,6 @@ variables:
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${input.dns_prefix}collector address ${variable.net_prefix}.204
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${input.dns_prefix}auto-vip address ${variable.net_prefix}.205
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${input.dns_prefix}auto-platform address ${variable.net_prefix}.206
-    set service dns forwarding authoritative-domain ${input.domain_name} records a ${input.dns_prefix}sddcm address ${variable.net_prefix}.207
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${input.dns_prefix}vsp01 address ${variable.net_prefix}.208
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${input.dns_prefix}fleetlcm address ${variable.net_prefix}.209
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${input.dns_prefix}shared01 address ${variable.net_prefix}.210
@@ -363,7 +378,7 @@ variables:
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${variable.jumphost_settings.hostname} address ${variable.jumphost_settings.ip}
 
     # --- Generated DNS PTR records ---
-    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 10 target ${variable.installer_settings.hostname}.${input.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 10 target ${variable.installer_settings.fqdn}
     %{for host in variable.esx_settings.servers}
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr ${split(host.ip, '.')[3]} target ${host.name}.${input.domain_name}
     %{endfor}
@@ -374,14 +389,13 @@ variables:
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 204 target ${input.dns_prefix}collector.${input.domain_name}
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 205 target ${input.dns_prefix}auto-vip.${input.domain_name}
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 206 target ${input.dns_prefix}auto-platform.${input.domain_name}
-    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 207 target ${input.dns_prefix}sddcm.${input.domain_name}
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 208 target ${input.dns_prefix}vsp01.${input.domain_name}
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 209 target ${input.dns_prefix}fleetlcm.${input.domain_name}
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 210 target ${input.dns_prefix}shared01.${input.domain_name}
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 211 target ${input.dns_prefix}vidb.${input.domain_name}
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 212 target ${input.dns_prefix}license.${input.domain_name}
 
-    set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr 2 target ${variable.vyos_settings.hostname}.${input.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr 2 target ${variable.vyos_settings.fqdn}
     set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr 4 target ${variable.jumphost_settings.hostname}.${input.domain_name}
 resources:
   VPC_Main:
@@ -800,7 +814,7 @@ resources:
               properties:
                 - key: hostname
                   value:
-                    value: ${variable.vyos_settings.hostname}.${input.domain_name}
+                    value: ${variable.vyos_settings.fqdn}
                 - key: ipaddress
                   value:
                     value: ${to_string(variable.vyos_settings.mgmt_ip)}
@@ -958,7 +972,7 @@ resources:
                     value: ${to_string(input.domain_name)}
                 - key: guestinfo.ntp
                   value:
-                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
+                    value: ${to_string(variable.vyos_settings.fqdn)}
                 - key: guestinfo.ssh
                   value:
                     value: 'true'
@@ -1039,7 +1053,7 @@ resources:
                     value: ${to_string(input.domain_name)}
                 - key: guestinfo.ntp
                   value:
-                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
+                    value: ${to_string(variable.vyos_settings.fqdn)}
                 - key: guestinfo.ssh
                   value:
                     value: 'true'
@@ -1101,10 +1115,10 @@ resources:
                       key: lab-password
                 - key: vami.hostname
                   value:
-                    value: ${variable.installer_settings.hostname}.${input.domain_name}
+                    value: ${variable.installer_settings.fqdn}
                 - key: guestinfo.ntp
                   value:
-                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
+                    value: ${to_string(variable.vyos_settings.fqdn)}
                 - key: ip_address_version
                   value:
                     value: IPv4
@@ -1262,7 +1276,7 @@ outputs:
           ]
         },
         "ntpServers": [
-          "${variable.vyos_settings.mgmt_ip}"
+          "${variable.vyos_settings.fqdn}"
         ],
         "hostSpecs": [
         %{for host in variable.esx_settings.servers}
@@ -1297,7 +1311,7 @@ outputs:
             "subnet": "${variable.netlayout.vmotion.ipaddresses}",
             "gateway": "${variable.netlayout.vmotion.defaultgw}",
             "vlanId": ${variable.netlayout.vmotion.vlanid},
-            "mtu": 9000,
+            "mtu": ${variable.netlayout.trunk.mtu},
             "includeIpAddressRanges": [
               {
                 "startIpAddress": "${variable.netlayout.vmotion.ip_pool.start}",
@@ -1318,7 +1332,7 @@ outputs:
             "subnet": "${variable.netlayout.vsan.ipaddresses}",
             "gateway": "${variable.netlayout.vsan.defaultgw}",
             "vlanId": ${variable.netlayout.vsan.vlanid},
-            "mtu": 9000,
+            "mtu": ${variable.netlayout.trunk.mtu},
             "includeIpAddressRanges": [
               {
                 "startIpAddress": "${variable.netlayout.vsan.ip_pool.start}",
@@ -1458,7 +1472,7 @@ outputs:
               "VMOTION",
               "VSAN"
             ],
-            "mtu": 9000,
+            "mtu": ${variable.netlayout.trunk.mtu},
             "nsxtSwitchConfig": {
               "transportZones": [
                 {
@@ -1491,7 +1505,7 @@ outputs:
           }
         ],
         "sddcManagerSpec": {
-          "hostname": "${input.dns_prefix}sddcm.${input.domain_name}",
+          "hostname": "${variable.installer_settings.fqdn}",
           "localUserPassword": "${variable.vcf_settings.sddc_manager.local_user_password}",
           "rootPassword": "${variable.vcf_settings.sddc_manager.root_password}",
           "sshPassword": "${variable.vcf_settings.sddc_manager.ssh_password}",

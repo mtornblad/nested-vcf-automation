@@ -127,12 +127,20 @@ def validate() -> list[str]:
     inputs = blueprint.get("inputs", {})
     for name in ("lab_password", "vyos_rest_api_key"):
         definition = inputs.get(name, {})
-        require(definition.get("encrypted") is True, f"{name} must be encrypted")
+        require(
+            definition.get("encrypted") is False,
+            f"{name} must be a plaintext lab input",
+        )
         require("default" not in definition, f"{name} must not have a default")
     require(
         inputs.get("lab_password", {}).get("minLength") == 15,
         "lab_password must satisfy the 15-character VCF service minimum",
     )
+    fabric_mtu = inputs.get("fabric_mtu", {})
+    require(fabric_mtu.get("type") == "integer", "fabric_mtu must be an integer")
+    require(fabric_mtu.get("default") == 8000, "fabric_mtu must default to 8000")
+    require(fabric_mtu.get("minimum") == 1600, "fabric_mtu minimum must be 1600")
+    require(fabric_mtu.get("maximum") == 9000, "fabric_mtu maximum must be 9000")
 
     variables = blueprint.get("variables", {})
     allowed = {"${input.lab_password}", "${input.vyos_rest_api_key}"}
@@ -145,6 +153,17 @@ def validate() -> list[str]:
     require(secret_manifest.get("kind") == "Secret", "bootstrap Secret missing")
 
     vyos_settings = variables.get("vyos_settings", {})
+    installer_settings = variables.get("installer_settings", {})
+    require(
+        vyos_settings.get("fqdn")
+        == "${input.dns_prefix}vyos01.${input.domain_name}",
+        "VyOS must have one canonical FQDN",
+    )
+    require(
+        installer_settings.get("fqdn")
+        == "${input.dns_prefix}vcf-installer.${input.domain_name}",
+        "VCF Installer must have one canonical FQDN",
+    )
     require(
         vyos_settings.get("dns", {}).get("local_resolver") == "127.0.0.1",
         "VyOS local resolver must be 127.0.0.1",
@@ -165,14 +184,23 @@ def validate() -> list[str]:
         "set service dns forwarding allow-from 127.0.0.0/8",
         "set service dns forwarding name-server "
         "${variable.vyos_settings.dns.forwarder}",
+        "set service dns forwarding ignore-hosts-file",
+        "records a ${variable.vyos_settings.hostname} address "
+        "${variable.vyos_settings.mgmt_ip}",
         "records a ${variable.installer_settings.hostname} address "
         "${variable.installer_settings.ip}",
+        "records ptr 10 target ${variable.installer_settings.fqdn}",
+        "records ptr 2 target ${variable.vyos_settings.fqdn}",
     )
     for line in required_dns_lines:
         require(line in vyos_config, f"missing VyOS DNS configuration: {line}")
     require(
         "value: ${base64_encode(variable.vyos_config)}" in raw,
         "vyos_config must be transported through config_base64",
+    )
+    require(
+        "${input.dns_prefix}sddcm" not in vyos_config,
+        "VyOS DNS must not publish a second SDDC Manager identity",
     )
 
     windows = resources.get("Jumphost_VM", {})
@@ -204,13 +232,13 @@ def validate() -> list[str]:
         "LOCAL_USER_PASSWORD",
         "vami.hostname",
         "guestinfo.ntp",
-        "vami.ip_address_version",
-        "vami.ip0",
-        "vami.netmask0",
-        "vami.gateway",
-        "vami.domain",
-        "vami.searchpath",
-        "vami.DNS",
+        "ip_address_version",
+        "ip0",
+        "netmask0",
+        "gateway",
+        "domain",
+        "searchpath",
+        "DNS",
     }
     require(
         set(installer_properties) == installer_ovf_keys,
@@ -220,21 +248,31 @@ def validate() -> list[str]:
         not any("SDDC-Manager" in key for key in installer_properties),
         "VCF Installer vApp keys must not contain the SDDC-Manager suffix",
     )
+    require(
+        installer_properties.get("vami.hostname", {}).get("value")
+        == "${variable.installer_settings.fqdn}",
+        "VCF Installer hostname property must use its canonical FQDN",
+    )
+    require(
+        installer_properties.get("guestinfo.ntp", {}).get("value")
+        == "${to_string(variable.vyos_settings.fqdn)}",
+        "VCF Installer must use the canonical VyOS FQDN for NTP",
+    )
 
-    # VM Operator prefixes vApp property keys with guestinfo when it exposes
-    # them to the guest. The blueprint key must therefore match the OVF image
-    # property exactly and must not carry a second guestinfo prefix.
+    # These are the exact keys accepted by the tested nested ESXi image. Keep
+    # the explicit guestinfo prefix even though other OVAs expose unqualified
+    # property IDs through VM Operator.
     esxi_ovf_keys = {
-        "hostname",
-        "password",
-        "ipaddress",
-        "netmask",
-        "gateway",
-        "dns",
-        "domain",
-        "ntp",
-        "vlan",
-        "ssh",
+        "guestinfo.hostname",
+        "guestinfo.password",
+        "guestinfo.ipaddress",
+        "guestinfo.netmask",
+        "guestinfo.gateway",
+        "guestinfo.dns",
+        "guestinfo.domain",
+        "guestinfo.ntp",
+        "guestinfo.vlan",
+        "guestinfo.ssh",
     }
     for resource_name in ("VM_ESXs", "VM_ESXs_Boot_Only"):
         resource = resources.get(resource_name, {})
@@ -242,8 +280,14 @@ def validate() -> list[str]:
         require(len(keys) == len(set(keys)), f"{resource_name} has duplicate vApp keys")
         require(set(keys) == esxi_ovf_keys, f"{resource_name} vApp keys do not match the ESXi OVF")
         require(
-            all(not key.startswith("guestinfo.") for key in keys),
-            f"{resource_name} must use unqualified OVF keys",
+            all(key.startswith("guestinfo.") for key in keys),
+            f"{resource_name} must preserve the tested guestinfo-prefixed keys",
+        )
+        properties = property_map(resource)
+        require(
+            properties.get("guestinfo.ntp", {}).get("value")
+            == "${to_string(variable.vyos_settings.fqdn)}",
+            f"{resource_name} must use the canonical VyOS FQDN for NTP",
         )
 
     vsan_enabled = inputs.get("esx_vsan_disk_enabled", {})
@@ -382,6 +426,33 @@ def validate() -> list[str]:
             expression in deployment_json,
             f"VCF Installer VLAN expression must render as an integer: {expression}",
         )
+    mtu_expression = '"mtu": ${variable.netlayout.trunk.mtu}'
+    require(
+        variables.get("netlayout", {}).get("trunk", {}).get("mtu")
+        == "${input.fabric_mtu}",
+        "trunk MTU must be sourced from fabric_mtu",
+    )
+    require(
+        vyos_config.count("mtu ${variable.netlayout.trunk.mtu}") == 6,
+        "VyOS must apply fabric_mtu to the trunk and all five VLAN interfaces",
+    )
+    require(
+        deployment_json.count(mtu_expression) == 3,
+        "VCF JSON must apply fabric_mtu to vMotion, vSAN, and the DVS",
+    )
+    require(
+        re.search(
+            r'"ntpServers":\s*\[\s*"\$\{variable\.vyos_settings\.fqdn\}"\s*\]',
+            deployment_json,
+        )
+        is not None,
+        "VCF JSON must use the canonical VyOS FQDN for NTP",
+    )
+    require(
+        '"hostname": "${variable.installer_settings.fqdn}"'
+        in deployment_json,
+        "sddcManagerSpec must use the VCF Installer appliance FQDN",
+    )
     vcf_settings = variables.get("vcf_settings", {})
     vsp_internal_cidr = vcf_settings.get("vsp", {}).get("internal_cluster_cidr")
     automation_internal_cidr = vcf_settings.get("automation", {}).get(

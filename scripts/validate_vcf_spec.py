@@ -95,6 +95,13 @@ def validate_vlan_id(value: object, path: str, errors: list[str]) -> None:
         errors.append(f"{path} must be between 0 and 4094")
 
 
+def validate_mtu(value: object, path: str, errors: list[str]) -> None:
+    if isinstance(value, bool) or not isinstance(value, int):
+        errors.append(f"{path} must be a JSON integer")
+    elif not 1600 <= value <= 9000:
+        errors.append(f"{path} must be between 1600 and 9000")
+
+
 def validate_password_minimum(
     value: object,
     path: str,
@@ -241,6 +248,8 @@ def validate_spec(
             if network_type == "MANAGEMENT":
                 management_network = network
             validate_vlan_id(network_spec.get("vlanId"), f"{path}.vlanId", errors)
+            if "mtu" in network_spec:
+                validate_mtu(network_spec.get("mtu"), f"{path}.mtu", errors)
             teaming_policy = network_spec.get("teamingPolicy")
             if teaming_policy is not None:
                 require(
@@ -276,6 +285,29 @@ def validate_spec(
             is_fqdn(vcenter.get("vcenterHostname")),
             "vcenterSpec.vcenterHostname must be an FQDN",
         )
+
+    sddc_manager = spec.get("sddcManagerSpec")
+    if sddc_manager is not None:
+        if not isinstance(sddc_manager, dict):
+            errors.append("sddcManagerSpec must be an object")
+        else:
+            require(
+                is_fqdn(sddc_manager.get("hostname")),
+                "sddcManagerSpec.hostname must be an FQDN",
+            )
+
+    dvs_specs = spec.get("dvsSpecs")
+    if dvs_specs is not None:
+        if not isinstance(dvs_specs, list) or not dvs_specs:
+            errors.append("dvsSpecs must be a non-empty array")
+        else:
+            for index, dvs_spec in enumerate(dvs_specs):
+                path = f"dvsSpecs[{index}]"
+                if not isinstance(dvs_spec, dict):
+                    errors.append(f"{path} must be an object")
+                    continue
+                if "mtu" in dvs_spec:
+                    validate_mtu(dvs_spec.get("mtu"), f"{path}.mtu", errors)
 
     datastore = spec.get("datastoreSpec")
     if not isinstance(datastore, dict):
