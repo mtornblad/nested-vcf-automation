@@ -95,11 +95,13 @@ def validate_vlan_id(value: object, path: str, errors: list[str]) -> None:
         errors.append(f"{path} must be between 0 and 4094")
 
 
-def validate_mtu(value: object, path: str, errors: list[str]) -> None:
+def validate_mtu(
+    value: object, path: str, errors: list[str], *, maximum: int = 9000
+) -> None:
     if isinstance(value, bool) or not isinstance(value, int):
         errors.append(f"{path} must be a JSON integer")
-    elif not 1600 <= value <= 9000:
-        errors.append(f"{path} must be between 1600 and 9000")
+    elif not 1500 <= value <= maximum:
+        errors.append(f"{path} must be between 1500 and {maximum}")
 
 
 def validate_password_minimum(
@@ -307,7 +309,19 @@ def validate_spec(
                     errors.append(f"{path} must be an object")
                     continue
                 if "mtu" in dvs_spec:
-                    validate_mtu(dvs_spec.get("mtu"), f"{path}.mtu", errors)
+                    validate_mtu(dvs_spec.get("mtu"), f"{path}.mtu", errors, maximum=9190)
+                    dvs_mtu = dvs_spec.get("mtu")
+                    attached = dvs_spec.get("networks", [])
+                    if type(dvs_mtu) is int and isinstance(attached, list) and isinstance(networks, list):
+                        for network in networks:
+                            if not isinstance(network, dict):
+                                continue
+                            network_mtu = network.get("mtu")
+                            if network.get("networkType") in attached and type(network_mtu) is int:
+                                require(
+                                    network_mtu <= dvs_mtu,
+                                    f"{path}.mtu must not be smaller than attached network MTUs",
+                                )
 
     datastore = spec.get("datastoreSpec")
     if not isinstance(datastore, dict):
@@ -317,6 +331,18 @@ def validate_spec(
             isinstance(datastore.get("vsanSpec"), dict),
             "datastoreSpec.vsanSpec is required",
         )
+        vsan = datastore.get("vsanSpec")
+        if isinstance(vsan, dict) and "esaConfig" in vsan:
+            esa = vsan.get("esaConfig")
+            if not isinstance(esa, dict):
+                errors.append("datastoreSpec.vsanSpec.esaConfig must be an object")
+            else:
+                for field in ("enabled", "skipHclAutoDiskClaim"):
+                    if field in esa:
+                        require(
+                            type(esa[field]) is bool,
+                            f"datastoreSpec.vsanSpec.esaConfig.{field} must be a JSON boolean",
+                        )
 
     vsp_internal_network: ipaddress.IPv4Network | None = None
     vsp = spec.get("vspClusterSpec")

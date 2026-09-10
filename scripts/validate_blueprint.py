@@ -138,9 +138,12 @@ def validate() -> list[str]:
     )
     fabric_mtu = inputs.get("fabric_mtu", {})
     require(fabric_mtu.get("type") == "integer", "fabric_mtu must be an integer")
-    require(fabric_mtu.get("default") == 8000, "fabric_mtu must default to 8000")
+    require(fabric_mtu.get("default") == 9000, "fabric_mtu must default to 9000")
     require(fabric_mtu.get("minimum") == 1600, "fabric_mtu minimum must be 1600")
     require(fabric_mtu.get("maximum") == 9000, "fabric_mtu maximum must be 9000")
+    hcl_input = inputs.get("vsan_allow_hcl_incompatible_disks", {})
+    require(hcl_input.get("type") == "boolean", "HCL disk claim input must be boolean")
+    require(hcl_input.get("default") is True, "HCL disk claim must default to enabled for the nested lab")
 
     variables = blueprint.get("variables", {})
     allowed = {"${input.lab_password}", "${input.vyos_rest_api_key}"}
@@ -198,10 +201,13 @@ def validate() -> list[str]:
         "value: ${base64_encode(variable.vyos_config)}" in raw,
         "vyos_config must be transported through config_base64",
     )
-    require(
-        "${input.dns_prefix}sddcm" not in vyos_config,
-        "VyOS DNS must not publish a second SDDC Manager identity",
-    )
+    for line in (
+        "%{for record in variable.vyos_settings.dns.additional_a_records}",
+        "authoritative-domain ${record.zone} records a ${record.name} address ${record.address}",
+        "records a ${variable.vcf_settings.sddc_manager.hostname} address ${variable.vcf_settings.sddc_manager.ip}",
+        "records ptr ${split(variable.vcf_settings.sddc_manager.ip, '.')[3]} target ${variable.vcf_settings.sddc_manager.fqdn}",
+    ):
+        require(line in vyos_config, f"missing supplemental DNS configuration: {line}")
 
     windows = resources.get("Jumphost_VM", {})
     windows_spec = windows.get("properties", {}).get("manifest", {}).get("spec", {})
@@ -449,11 +455,29 @@ def validate() -> list[str]:
         "VCF JSON must use the canonical VyOS FQDN for NTP",
     )
     require(
-        '"hostname": "${variable.installer_settings.fqdn}"'
+        '"hostname": "${variable.vcf_settings.sddc_manager.fqdn}"'
         in deployment_json,
-        "sddcManagerSpec must use the VCF Installer appliance FQDN",
+        "sddcManagerSpec must use the separate SDDC Manager FQDN",
     )
     vcf_settings = variables.get("vcf_settings", {})
+    sddc_manager = vcf_settings.get("sddc_manager", {})
+    require(
+        bool(sddc_manager.get("fqdn"))
+        and sddc_manager.get("fqdn") != installer_settings.get("fqdn")
+        and bool(sddc_manager.get("ip"))
+        and sddc_manager.get("ip") != installer_settings.get("ip"),
+        "new SDDC Manager deployment must have its own FQDN and IP",
+    )
+    require(
+        vcf_settings.get("vsan", {}).get("allow_hcl_incompatible_disks")
+        == "${input.vsan_allow_hcl_incompatible_disks}",
+        "vSAN settings must inherit the HCL disk claim request input",
+    )
+    require(
+        '"skipHclAutoDiskClaim": ${variable.vcf_settings.vsan.allow_hcl_incompatible_disks}'
+        in deployment_json,
+        "HCL disk claim flag must render as a JSON boolean",
+    )
     vsp_internal_cidr = vcf_settings.get("vsp", {}).get("internal_cluster_cidr")
     automation_internal_cidr = vcf_settings.get("automation", {}).get(
         "internal_cluster_cidr"

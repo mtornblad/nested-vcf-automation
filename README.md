@@ -91,10 +91,15 @@ Services and VCF Automation impose the strictest minimum among the consumers.
 It is intentionally convenient for this disposable lab: the request and
 rendered output expose it. Do not reuse this credential model for production.
 
-`fabric_mtu` defaults to 8000 and is applied to the VyOS trunk and all five
+`fabric_mtu` defaults to 9000 and is applied to the VyOS trunk and all five
 tagged interfaces, the vMotion and vSAN network specifications, and the VCF
 distributed switch. Override it only with a value verified end to end; the
 accepted range is 1600 through 9000.
+
+This is the nested IP MTU. The outer Supervisor/NSX transport must carry those
+packets plus its tunnel headers. Changing this input does not configure the
+outer vDS, TEP interfaces, Edge nodes, or physical switches. See the
+[MTU troubleshooting guide](https://github.com/mtornblad/nested-vcf-lab/blob/main/docs/networking.md#mtu).
 
 ## Nested ESXi vSAN capacity
 
@@ -103,6 +108,15 @@ one namespace-scoped raw-block PVC per entry in `esx_settings.servers` and
 attaches it to that host through NVMe controller 0. The default size is 100 GiB
 and can be changed with `esx_vsan_disk_size_gib` at request time. The PVC uses
 the namespace storage policy and is attached as `IndependentPersistent`.
+
+`vsan_allow_hcl_incompatible_disks` exposes **Allow auto claim of HCL
+incompatible disks** and defaults to `true` for the nested lab. It is stored
+under `vcf_settings.vsan.allow_hcl_incompatible_disks` and renders as the JSON
+boolean `datastoreSpec.vsanSpec.esaConfig.skipHclAutoDiskClaim`. Set the input
+to `false` to keep HCL-based claiming. This flag controls disk claiming; it does
+not add a disk or remove other hardware eligibility checks. The API field is
+documented in
+[VsanEsaConfig](https://developer.broadcom.com/xapis/vcf-installer-api/latest/data-structures/VsanEsaConfig/).
 
 Set `esx_vsan_disk_enabled` to `false` when testing an ESXi image without vSAN.
 The mutually exclusive ESXi resources ensure that the boot-only and
@@ -127,6 +141,32 @@ uppercase `DNS`. Do not add `vami.` to the final seven keys and do not append
 The image IDs must identify `ClusterVirtualMachineImage` objects available to
 the target namespace. The nested ESXi VM Class must expose hardware-assisted
 virtualization.
+
+## Installer, SDDC Manager, and external DNS records
+
+The blueprint provisions the installer outside the nested cluster and requests
+a **new** SDDC Manager (`useExistingDeployment: false`). They therefore have
+separate identities in the reference lab:
+
+| Appliance | Variable | FQDN | Address |
+| --- | --- | --- | --- |
+| VCF Installer | `installer_settings` | `mtvcf-installer.dclab.se` | `172.16.1.10` |
+| SDDC Manager | `vcf_settings.sddc_manager` | `mtsddcm01.dclab.se` | `172.16.1.207` |
+
+Both identities have forward and reverse records in the VyOS payload. Only
+`sddcManagerSpec.hostname` targets the SDDC Manager identity; installer vApp
+properties continue to target the installer. Reusing an appliance is a
+different workflow involving `useExistingDeployment: true` and trust settings;
+do not create a DNS alias that makes a new deployment target the installer.
+See the
+[SDDC Manager API contract](https://developer.broadcom.com/xapis/vcf-installer-api/latest/data-structures/SddcManagerSpec/).
+
+`vyos_settings.dns.additional_a_records` adds the external VIS entry
+`vis-appliance.dclab.se` -> `10.114.10.9`. Each entry specifies `zone`, `name`,
+and `address`, so the external name does not change with the nested lab's DNS
+prefix. The zone is authoritative in VyOS: include any other required names in
+that zone explicitly. Do not add VIS only to `/etc/hosts`, because the DNS
+forwarder intentionally ignores that file.
 
 ## Validate generated JSON
 

@@ -28,10 +28,15 @@ inputs:
   fabric_mtu:
     type: integer
     title: Nested Fabric MTU
-    default: 8000
+    default: 9000
     minimum: 1600
     maximum: 9000
-    description: End-to-end MTU for the nested VyOS trunk, VCF system networks, and distributed switch; NSX overlay requires at least 1600
+    description: IP MTU for the nested VyOS trunk, VCF system networks, and distributed switch; the outer NSX transport and physical network need additional encapsulation headroom
+  vsan_allow_hcl_incompatible_disks:
+    type: boolean
+    title: Allow auto claim of HCL incompatible disks
+    default: true
+    description: Allow vSAN ESA to claim non-HCL disks in the nested lab; maps to skipHclAutoDiskClaim in the VCF specification
   install_automation:
     type: boolean
     title: Install Aria Automation (Day 2)
@@ -103,6 +108,10 @@ variables:
       local_resolver: 127.0.0.1
       forwarder: ${input.dns_forwarder}
       allow_from: ${variable.vpc_settings.network}
+      additional_a_records:
+        - zone: dclab.se
+          name: vis-appliance
+          address: 10.114.10.9
     ntp:
       upstream_server: ${input.ntp_server}
       allow_from: ${variable.vpc_settings.network}
@@ -145,6 +154,8 @@ variables:
       admin_password: ${input.lab_password}
   # --- VCF Component Settings ---
   vcf_settings:
+    vsan:
+      allow_hcl_incompatible_disks: ${input.vsan_allow_hcl_incompatible_disks}
     vsp:
       ip_pool:
         start: ${variable.net_prefix}.110
@@ -164,6 +175,9 @@ variables:
       admin_sso_password: ${input.lab_password}
       root_password: ${input.lab_password}
     sddc_manager:
+      hostname: ${input.dns_prefix}sddcm01
+      fqdn: ${input.dns_prefix}sddcm01.${input.domain_name}
+      ip: ${variable.net_prefix}.207
       local_user_password: ${input.lab_password}
       root_password: ${input.lab_password}
       ssh_password: ${input.lab_password}
@@ -358,6 +372,9 @@ variables:
     set service ntp allow-client address ${variable.vyos_settings.ntp.allow_from}
 
     # --- Generated DNS A records ---
+    %{for record in variable.vyos_settings.dns.additional_a_records}
+    set service dns forwarding authoritative-domain ${record.zone} records a ${record.name} address ${record.address}
+    %{endfor}
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${variable.vyos_settings.hostname} address ${variable.vyos_settings.mgmt_ip}
     %{for host in variable.esx_settings.servers}
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${host.name} address ${host.ip}
@@ -375,10 +392,12 @@ variables:
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${input.dns_prefix}vidb address ${variable.net_prefix}.211
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${input.dns_prefix}license address ${variable.net_prefix}.212
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${variable.installer_settings.hostname} address ${variable.installer_settings.ip}
+    set service dns forwarding authoritative-domain ${input.domain_name} records a ${variable.vcf_settings.sddc_manager.hostname} address ${variable.vcf_settings.sddc_manager.ip}
     set service dns forwarding authoritative-domain ${input.domain_name} records a ${variable.jumphost_settings.hostname} address ${variable.jumphost_settings.ip}
 
     # --- Generated DNS PTR records ---
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 10 target ${variable.installer_settings.fqdn}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr ${split(variable.vcf_settings.sddc_manager.ip, '.')[3]} target ${variable.vcf_settings.sddc_manager.fqdn}
     %{for host in variable.esx_settings.servers}
     set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr ${split(host.ip, '.')[3]} target ${host.name}.${input.domain_name}
     %{endfor}
@@ -1454,7 +1473,7 @@ outputs:
             "failuresToTolerate": 1,
             "esaConfig": {
               "enabled": true,
-              "skipHclAutoDiskClaim": false
+              "skipHclAutoDiskClaim": ${variable.vcf_settings.vsan.allow_hcl_incompatible_disks}
             },
             "datastoreName": "mgmt-cl01-ds-vsan01",
             "encryptionConfig": {
@@ -1505,7 +1524,7 @@ outputs:
           }
         ],
         "sddcManagerSpec": {
-          "hostname": "${variable.installer_settings.fqdn}",
+          "hostname": "${variable.vcf_settings.sddc_manager.fqdn}",
           "localUserPassword": "${variable.vcf_settings.sddc_manager.local_user_password}",
           "rootPassword": "${variable.vcf_settings.sddc_manager.root_password}",
           "sshPassword": "${variable.vcf_settings.sddc_manager.ssh_password}",

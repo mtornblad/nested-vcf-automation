@@ -125,14 +125,42 @@ class VcfSpecTests(unittest.TestCase):
     def test_network_and_dvs_mtu_must_be_supported_json_integers(self) -> None:
         spec = valid_spec()
         spec["networkSpecs"][1]["mtu"] = "8000"  # type: ignore[index]
-        spec["networkSpecs"][2]["mtu"] = 1500  # type: ignore[index]
-        spec["dvsSpecs"] = [{"dvsName": "vds01", "mtu": 9001}]
+        spec["networkSpecs"][2]["mtu"] = 9001  # type: ignore[index]
+        spec["dvsSpecs"] = [{"dvsName": "vds01", "mtu": 9191}]
 
         errors = validate_vcf_spec.validate_spec(spec)
 
         self.assertIn("networkSpecs[1].mtu must be a JSON integer", errors)
-        self.assertIn("networkSpecs[2].mtu must be between 1600 and 9000", errors)
-        self.assertIn("dvsSpecs[0].mtu must be between 1600 and 9000", errors)
+        self.assertIn("networkSpecs[2].mtu must be between 1500 and 9000", errors)
+        self.assertIn("dvsSpecs[0].mtu must be between 1500 and 9190", errors)
+
+    def test_network_mtu_must_fit_its_dvs(self) -> None:
+        spec = valid_spec()
+        spec["networkSpecs"][0]["mtu"] = 1500  # type: ignore[index]
+        spec["networkSpecs"][1]["mtu"] = 9000  # type: ignore[index]
+        spec["dvsSpecs"] = [{"dvsName": "vds01", "mtu": 9190, "networks": ["VMOTION"]}]
+        self.assertEqual([], validate_vcf_spec.validate_spec(spec))
+        spec["dvsSpecs"][0]["mtu"] = 8000
+        self.assertIn(
+            "dvsSpecs[0].mtu must not be smaller than attached network MTUs",
+            validate_vcf_spec.validate_spec(spec),
+        )
+
+    def test_hcl_disk_claim_accepts_both_booleans_but_rejects_strings(self) -> None:
+        for value in (True, False, "true", 1):
+            with self.subTest(value=value):
+                spec = valid_spec()
+                spec["datastoreSpec"]["vsanSpec"]["esaConfig"] = {  # type: ignore[index]
+                    "enabled": True, "skipHclAutoDiskClaim": value,
+                }
+                errors = validate_vcf_spec.validate_spec(spec)
+                if type(value) is bool:
+                    self.assertEqual([], errors)
+                else:
+                    self.assertIn(
+                        "datastoreSpec.vsanSpec.esaConfig.skipHclAutoDiskClaim must be a JSON boolean",
+                        errors,
+                    )
 
     def test_sddc_manager_hostname_must_be_an_fqdn(self) -> None:
         spec = valid_spec()

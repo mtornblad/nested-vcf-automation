@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import copy
 import re
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -168,14 +170,40 @@ class BlueprintContractTests(unittest.TestCase):
             r'"ntpServers":\s*\[\s*"\$\{variable\.vyos_settings\.fqdn\}"\s*\]',
         )
         self.assertIn(
-            '"hostname": "${variable.installer_settings.fqdn}"',
+            '"hostname": "${variable.vcf_settings.sddc_manager.fqdn}"',
             template,
+        )
+
+    def test_new_sddc_manager_must_not_reuse_installer_identity(self) -> None:
+        changed = copy.deepcopy(self.blueprint)
+        settings = changed["variables"]
+        settings["vcf_settings"]["sddc_manager"]["fqdn"] = settings["installer_settings"]["fqdn"]
+        with mock.patch.object(
+            validate_blueprint, "load_sources",
+            return_value=(changed, self.descriptor, self.details, self.raw),
+        ):
+            self.assertIn(
+                "new SDDC Manager deployment must have its own FQDN and IP",
+                validate_blueprint.validate(),
+            )
+
+    def test_vis_record_is_rendered_into_the_dns_payload(self) -> None:
+        records = self.blueprint["variables"]["vyos_settings"]["dns"]["additional_a_records"]
+        record = next(item for item in records if item["name"] == "vis-appliance")
+        config = self.blueprint["variables"]["vyos_config"]
+        line = next(line for line in config.splitlines() if "${record.zone}" in line)
+        for key, value in record.items():
+            line = line.replace("${record." + key + "}", value)
+        self.assertEqual(
+            "set service dns forwarding authoritative-domain dclab.se "
+            "records a vis-appliance address 10.114.10.9",
+            line.strip(),
         )
 
     def test_fabric_mtu_is_applied_end_to_end(self) -> None:
         definition = self.blueprint["inputs"]["fabric_mtu"]
         self.assertEqual("integer", definition["type"])
-        self.assertEqual(8000, definition["default"])
+        self.assertEqual(9000, definition["default"])
         self.assertEqual(1600, definition["minimum"])
         self.assertEqual(9000, definition["maximum"])
 
