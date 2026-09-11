@@ -39,7 +39,7 @@ inputs:
     description: Allow vSAN ESA to claim non-HCL disks in the nested lab; maps to skipHclAutoDiskClaim in the VCF specification
   install_automation:
     type: boolean
-    title: Install Aria Automation (Day 2)
+    title: Install Aria Automation
     default: false
     description: Include VCF Automation in the generated VCF deployment specification
   esx_vsan_disk_enabled:
@@ -139,7 +139,7 @@ variables:
   # --- Installer Settings ---
   installer_settings:
     vm_image: vmi-992f6225042baf914
-    vm_class: best-effort-xsmall
+    vm_class: best-effort-large
     ip: ${variable.net_prefix}.10
     hostname: ${input.dns_prefix}vcf-installer
     fqdn: ${input.dns_prefix}vcf-installer.${input.domain_name}
@@ -347,6 +347,53 @@ variables:
   rev_zone_mgmt: ${variable.mgmt_oct3}.${variable.mgmt_oct2}.${variable.mgmt_oct1}.in-addr.arpa
   rev_zone_uplink: ${variable.uplink_oct3}.${variable.uplink_oct2}.${variable.uplink_oct1}.in-addr.arpa
   # --- VyOS supplemental configuration ---
+  ssh:
+    private_key: |
+      -----BEGIN OPENSSH PRIVATE KEY-----
+      b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn
+      NhAAAAAwEAAQAAAQEAqeyuvOsEK7DoF9S3xzIaiHa9UHZPmZjX8tLAcWQywgu5NumFH47W
+      E+LZwkace0nim+YiyYxhhuFHfbtWnjPG0ZyNOu+sPANO7JZO9jk/Po7vHynQ30uyIuZwdE
+      OmlNwzPzEYxGNnoAmC8z5t2nWxD5Q+OMoqyao7hOts2rV7nFqBGdePd3fBtlbIFUTZe3xd
+      ZuRzzAZAKolATuyZwreenSKC7m5+VOSYYouRppAbfC0KtxwHJSxTXFKeK7wu9F+pPZyspF
+      7ws9GSECJS62j8mTvAdfchHlGIkF0zSp5tggmsAVl9EYEv8mUUb00jYdAI32UahBrJljnm
+      V4hIclnNwwAAA9g1sA9XNbAPVwAAAAdzc2gtcnNhAAABAQCp7K686wQrsOgX1LfHMhqIdr
+      1Qdk+ZmNfy0sBxZDLCC7k26YUfjtYT4tnCRpx7SeKb5iLJjGGG4Ud9u1aeM8bRnI0676w8
+      A07slk72OT8+ju8fKdDfS7Ii5nB0Q6aU3DM/MRjEY2egCYLzPm3adbEPlD44yirJqjuE62
+      zatXucWoEZ1493d8G2VsgVRNl7fF1m5HPMBkAqiUBO7JnCt56dIoLubn5U5Jhii5GmkBt8
+      LQq3HAclLFNcUp4rvC70X6k9nKykXvCz0ZIQIlLraPyZO8B19yEeUYiQXTNKnm2CCawBWX
+      0RgS/yZRRvTSNh0AjfZRqEGsmWOeZXiEhyWc3DAAAAAwEAAQAAAQAy0lAcvqmbq6hu4Dcr
+      A4g+Ak1y0D/Ub4s+29ukzlQEB1+Y1dTz8FOE1RdN7LKGiT2WZQlIgIz2u1AXgb1RSakQLi
+      NrWh2IQXEMf5QUPmD1A+juyCHpdwlLOOKvU0BySz2ki7mdmyF2EwIwYB6Y9RRE1ZCaiZSs
+      hhaRFZyT+S2EQGyMfMp3jKme477z2NUoldDevZpTqb5XgngW7zc0RciWoijSgbJt2EaA+i
+      P/tbA98fb6Kj11md0iRwLyRBpRCuIU1DRg4M/v6/4IGE8P0sJAt+bEXGTX499S6r+boJJ5
+      Ox6u3fi8vu4o50Tyyv+cPPcG5py4brvkT9QJ4tm2Ai4hAAAAgQCM90JVaPgpzvbutIu03j
+      9Db+/bDoNl5Ld9Le4FOVe1ZcT5rvuyiIhNLmLETn9H6qltB0lPHhPelLAPwqfrDfZwI5rn
+      qU8TTEF19yeGI0C5p1qPD3vcEz85vSj7esddtG/xREgroTJjI9q/k2hXQfMy69VVLyv5rT
+      Mc3/BxBnfFDgAAAIEA1Q+MmAvpqGzu+DtWrtyIr0+NMChbxAA5BxXy9TwNrklNa2xJyGoJ
+      NnxIzMRrauizKbEIIaK0wpA7ZIYhRvqre8RYzPjIWF3dlPDcuALG9fhXA0+7q89pAOce1l
+      2cOKJqUKsZgXD+VPvF7GBeqKwBRHA3cdgJESf+maScPaqokBMAAACBAMwrmxtOXO/F6DMD
+      KlLG03rVkyVf4XhLykDo8vrgRcDIFnQ3cXs+B8v8sMCZ+YnN101cABNUAaUyK467mTNfQp
+      adbRO6g5TQGKnVdlT+a5ancqlfSq8mVTeTlpfgUxApsbiW53oH4HLSFfG2aGT2FZCtU0CK
+      K8+qK5HzIRK/s2GRAAAAHmFkdlxzZW1hdG9yMDAxQEFEU0UtNUNHNTM1ME1XRAECAwQ=
+      -----END OPENSSH PRIVATE KEY-----
+    public_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCp7K686wQrsOgX1LfHMhqIdr1Qdk+ZmNfy0sBxZDLCC7k26YUfjtYT4tnCRpx7SeKb5iLJjGGG4Ud9u1aeM8bRnI0676w8A07slk72OT8+ju8fKdDfS7Ii5nB0Q6aU3DM/MRjEY2egCYLzPm3adbEPlD44yirJqjuE62zatXucWoEZ1493d8G2VsgVRNl7fF1m5HPMBkAqiUBO7JnCt56dIoLubn5U5Jhii5GmkBt8LQq3HAclLFNcUp4rvC70X6k9nKykXvCz0ZIQIlLraPyZO8B19yEeUYiQXTNKnm2CCawBWX0RgS/yZRRvTSNh0AjfZRqEGsmWOeZXiEhyWc3D adv\semator001@ADSE-5CG5350MWD
+    config: |
+      Host ${variable.vyos_settings.hostname}
+          HostName ${variable.vyos_settings.fqdn}
+          User vyos
+          IdentityFile ~/.ssh/id_rsa
+      Host ${variable.installer_settings.hostname}
+          HostName ${variable.installer_settings.fqdn}
+          User root
+          IdentityFile ~/.ssh/id_rsa
+      %{for host in variable.esx_settings.servers}
+        Host ${variable.esx_settings.name}
+            HostName ${variable.esx_settings.ip}
+            User root
+            IdentityFile ~/.ssh/id_rsa
+      %{endfor}
+    private_key_parts: ${split}  
+
   vyos_config: |
     set interfaces ethernet __TRUNK_INTERFACE__ address ${variable.netlayout.trunk.defaultgw}/24
     set interfaces ethernet __TRUNK_INTERFACE__ mtu ${variable.netlayout.trunk.mtu}
@@ -1267,6 +1314,9 @@ resources:
                 - key: guestinfo.vlan
                   value:
                     value: ${to_string(variable.netlayout.mgmt.vlanid)}
+                - key: guestinfo.ssh_key
+                  value:
+                    value: ${to_string(variable.ssh.public_key)}
           wait:
             conditions:
               - type: VirtualMachineCreated
@@ -1486,8 +1536,6 @@ resources:
                     - route /p add ${split(variable.netlayout.tep.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
                     - route /p add ${split(variable.netlayout.vpc.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
                     - route /p add ${split(variable.netlayout.trunk.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
-                    - cmd.exe /c mkdir c:\vcf
-                    - cmd.exe /c echo "${variable.vcf_deployment_json}" > C:\vcf\deploymen.json
                 guiUnattended:
                   autoLogon: true
                   autoLogonCount: 1
