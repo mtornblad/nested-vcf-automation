@@ -28,9 +28,9 @@ inputs:
   fabric_mtu:
     type: integer
     title: Nested Fabric MTU
-    default: 9000
+    default: 8000
     minimum: 1600
-    maximum: 9000
+    maximum: 8000
     description: IP MTU for the nested VyOS trunk, VCF system networks, and distributed switch; the outer NSX transport and physical network need additional encapsulation headroom
   vsan_allow_hcl_incompatible_disks:
     type: boolean
@@ -50,7 +50,7 @@ inputs:
   esx_vsan_disk_size_gib:
     type: integer
     title: Nested vSAN Disk Size (GiB)
-    default: 100
+    default: 300
     minimum: 1
     description: Capacity of the additional NVMe block volume attached to each nested ESXi host
   lab_password:
@@ -59,12 +59,14 @@ inputs:
     encrypted: false
     minLength: 15
     description: Plaintext credential for this disposable lab deployment; visible in the request and generated JSON
+    default: Password0!Password0!
   vyos_rest_api_key:
     type: string
     title: VyOS REST API Key
     encrypted: false
     minLength: 12
     description: Plaintext full-access REST API key for the disposable lab VyOS router
+    default: Password0!Password0!
 variables:
   bootstrap_secret_name: ${input.lab_name}-bootstrap-${env.shortDeploymentId}
   # --- Namespace & Environment Settings ---
@@ -416,6 +418,273 @@ variables:
 
     set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr 2 target ${variable.vyos_settings.fqdn}
     set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr 4 target ${variable.jumphost_settings.hostname}.${input.domain_name}
+  vcf_deployment_json:
+    value: |-
+      {
+        "version": "9.1.1.0",
+        "vcfInstanceName": "vcf",
+        "sddcId": "mgmt",
+        "workflowType": "VCF",
+        "ceipEnabled": false,
+        "skipEsxThumbprintValidation": true,
+        "dnsSpec": {
+          "subdomain": "${input.domain_name}",
+          "nameservers": [
+            "${variable.vyos_settings.mgmt_ip}"
+          ]
+        },
+        "ntpServers": [
+          "${variable.vyos_settings.fqdn}"
+        ],
+        "hostSpecs": [
+        %{for host in variable.esx_settings.servers}
+          %{if host.name != variable.esx_settings.servers[0].name},%{endif}
+          {
+            "hostname": "${host.name}.${input.domain_name}",
+            "credentials": {
+              "username": "${variable.esx_settings.credentials.username}",
+              "password": "${variable.esx_settings.credentials.password}"
+            }
+          }
+        %{endfor}
+        ],
+        "networkSpecs": [
+          {
+            "networkType": "MANAGEMENT",
+            "ipAddressVersion": "IPv4",
+            "subnet": "${variable.netlayout.mgmt.ipaddresses}",
+            "gateway": "${variable.netlayout.mgmt.defaultgw}",
+            "vlanId": ${variable.netlayout.mgmt.vlanid},
+            "activeUplinks": [
+              "uplink1",
+              "uplink2"
+            ],
+            "portGroupKey": "mgmt-cl01-vds01-pg-esx-mgmt",
+            "standbyUplinks": [],
+            "teamingPolicy": "loadbalance_loadbased"
+          },
+          {
+            "networkType": "VMOTION",
+            "ipAddressVersion": "IPv4",
+            "subnet": "${variable.netlayout.vmotion.ipaddresses}",
+            "gateway": "${variable.netlayout.vmotion.defaultgw}",
+            "vlanId": ${variable.netlayout.vmotion.vlanid},
+            "mtu": ${variable.netlayout.trunk.mtu},
+            "includeIpAddressRanges": [
+              {
+                "startIpAddress": "${variable.netlayout.vmotion.ip_pool.start}",
+                "endIpAddress": "${variable.netlayout.vmotion.ip_pool.end}"
+              }
+            ],
+            "activeUplinks": [
+              "uplink1",
+              "uplink2"
+            ],
+            "portGroupKey": "mgmt-cl01-vds01-pg-vmotion",
+            "standbyUplinks": [],
+            "teamingPolicy": "loadbalance_loadbased"
+          },
+          {
+            "networkType": "VSAN",
+            "ipAddressVersion": "IPv4",
+            "subnet": "${variable.netlayout.vsan.ipaddresses}",
+            "gateway": "${variable.netlayout.vsan.defaultgw}",
+            "vlanId": ${variable.netlayout.vsan.vlanid},
+            "mtu": ${variable.netlayout.trunk.mtu},
+            "includeIpAddressRanges": [
+              {
+                "startIpAddress": "${variable.netlayout.vsan.ip_pool.start}",
+                "endIpAddress": "${variable.netlayout.vsan.ip_pool.end}"
+              }
+            ],
+            "activeUplinks": [
+              "uplink1",
+              "uplink2"
+            ],
+            "portGroupKey": "mgmt-cl01-vds01-pg-vsan",
+            "standbyUplinks": [],
+            "teamingPolicy": "loadbalance_loadbased"
+          }
+        ],
+        "vspClusterSpec": {
+          "ipv4Pool": {
+            "ipRange": {
+              "startIpAddress": "${variable.vcf_settings.vsp.ip_pool.start}",
+              "endIpAddress": "${variable.vcf_settings.vsp.ip_pool.end}"
+            }
+          },
+          "platformFqdn": "${input.dns_prefix}vsp01.${input.domain_name}",
+          "instanceFqdn": "${input.dns_prefix}shared01.${input.domain_name}",
+          "fleetFqdn": "${input.dns_prefix}fleetlcm.${input.domain_name}",
+          "systemUserPassword": "${variable.vcf_settings.vsp.system_user_password}",
+          "size": "small",
+          "name": "vmsp-01",
+          "internalClusterCidrIpv4": "${variable.vcf_settings.vsp.internal_cluster_cidr}"
+        },
+        "nsxtSpec": {
+          "vipFqdn": "${input.dns_prefix}nsx01.${input.domain_name}",
+          "transportVlanId": ${variable.netlayout.tep.vlanid},
+          "ipAddressPoolSpec": {
+            "name": "${variable.netlayout.tep.ip_pool.name}",
+            "description": "${variable.netlayout.tep.ip_pool.description}",
+            "subnets": [
+              {
+                "cidr": "${variable.netlayout.tep.ipaddresses}",
+                "gateway": "${variable.netlayout.tep.defaultgw}",
+                "ipAddressPoolRanges": [
+                  {
+                    "start": "${variable.netlayout.tep.ip_pool.start}",
+                    "end": "${variable.netlayout.tep.ip_pool.end}"
+                  }
+                ]
+              }
+            ]
+          },
+          "nsxtManagerSize": "medium",
+          "nsxtAdminPassword": "${variable.vcf_settings.nsx.admin_password}",
+          "nsxtAuditPassword": "${variable.vcf_settings.nsx.audit_password}",
+          "rootNsxtManagerPassword": "${variable.vcf_settings.nsx.root_password}",
+          "useExistingDeployment": false,
+          "vpcSpec": {
+            "dtgwSpec": {
+              "vlan": ${variable.netlayout.vpc.vlanid},
+              "gatewayCidr": "${variable.netlayout.vpc.defaultgw}/24",
+              "externalIpBlockCidr": "${variable.netlayout.vpc.ipaddresses}",
+              "privateTgwIpBlockCidr": "172.31.0.0/16"
+            }
+          },
+          "nsxtManagers": [
+            {
+              "hostname": "${input.dns_prefix}nsx02.${input.domain_name}"
+            }
+          ]
+        },
+        "vcfOperationsSpec": {
+          "applianceSize": "small",
+          "adminUserPassword": "${variable.vcf_settings.operations.admin_password}",
+          "useExistingDeployment": false,
+          "nodes": [
+            {
+              "hostname": "${input.dns_prefix}ops01.${input.domain_name}",
+              "rootUserPassword": "${variable.vcf_settings.operations.root_password}",
+              "type": "master"
+            }
+          ]
+        },
+        "vcfOperationsCollectorSpec": {
+          "applianceSize": "small",
+          "hostname": "${input.dns_prefix}collector.${input.domain_name}",
+          "rootUserPassword": "${variable.vcf_settings.operations_collector.root_password}",
+          "useExistingDeployment": false
+        },
+        "licenseServerSpec": {
+          "hostname": "${input.dns_prefix}license.${input.domain_name}"
+        },
+        "vidbSpec": {
+          "hostname": "${input.dns_prefix}vidb.${input.domain_name}"
+        },
+        "saltSpec": {},
+        "saltRaasSpec": {},
+        "telemetryAcceptorSpec": {},
+        "fleetLcmSpec": {
+          "hostname": "${input.dns_prefix}fleetlcm.${input.domain_name}"
+        },
+        "sddcLcmSpec": {
+          "hostname": "${input.dns_prefix}shared01.${input.domain_name}"
+        },
+        "fleetDepotSpec": {},
+        "vcenterSpec": {
+          "vcenterHostname": "${input.dns_prefix}vc01.${input.domain_name}",
+          "adminUserSsoPassword": "${variable.vcf_settings.vcenter.admin_sso_password}",
+          "rootVcenterPassword": "${variable.vcf_settings.vcenter.root_password}",
+          "vmSize": "small",
+          "storageSize": "lstorage",
+          "ssoDomain": "vsphere.local",
+          "useExistingDeployment": false
+        },
+        "clusterSpec": {
+          "datacenterName": "mgmt-dc01",
+          "clusterName": "mgmt-cl01"
+        },
+        "datastoreSpec": {
+          "vsanSpec": {
+            "vsanDedup": false,
+            "failuresToTolerate": 1,
+            "esaConfig": {
+              "enabled": true,
+              "skipHclAutoDiskClaim": ${variable.vcf_settings.vsan.allow_hcl_incompatible_disks}
+            },
+            "datastoreName": "mgmt-cl01-ds-vsan01",
+            "encryptionConfig": {
+              "dataInTransitConfig": {
+                "enable": false
+              }
+            }
+          }
+        },
+        "dvsSpecs": [
+          {
+            "dvsName": "mgmt-cl01-vds01",
+            "networks": [
+              "MANAGEMENT",
+              "VMOTION",
+              "VSAN"
+            ],
+            "mtu": ${variable.netlayout.trunk.mtu},
+            "nsxtSwitchConfig": {
+              "transportZones": [
+                {
+                  "name": "overlay-tz-mgmt-nsxt",
+                  "transportType": "OVERLAY"
+                }
+              ]
+            },
+            "vmnicsToUplinks": [
+              {
+                "id": "vmnic0",
+                "uplink": "uplink1"
+              },
+              {
+                "id": "vmnic1",
+                "uplink": "uplink2"
+              }
+            ],
+            "nsxTeamings": [
+              {
+                "policy": "LOADBALANCE_SRCID",
+                "activeUplinks": [
+                  "uplink1",
+                  "uplink2"
+                ],
+                "standByUplinks": null
+              }
+            ],
+            "lagSpecs": null
+          }
+        ],
+        "sddcManagerSpec": {
+          "hostname": "${variable.vcf_settings.sddc_manager.fqdn}",
+          "localUserPassword": "${variable.vcf_settings.sddc_manager.local_user_password}",
+          "rootPassword": "${variable.vcf_settings.sddc_manager.root_password}",
+          "sshPassword": "${variable.vcf_settings.sddc_manager.ssh_password}",
+          "useExistingDeployment": false
+        }%{if input.install_automation == true},
+        "vcfAutomationSpec": {
+          "ipPool": [
+          %{for address in variable.vcf_settings.automation.ip_pool}
+            %{if address != variable.vcf_settings.automation.ip_pool[0]},%{endif}"${address}"
+          %{endfor}
+          ],
+          "hostname": "${input.dns_prefix}auto-vip.${input.domain_name}",
+          "platformFqdn": "${input.dns_prefix}auto-platform.${input.domain_name}",
+          "adminUserPassword": "${variable.vcf_settings.automation.admin_password}",
+          "nodePrefix": "mgmt-node-01",
+          "internalClusterCidr": "${variable.vcf_settings.automation.internal_cluster_cidr}",
+          "useExistingDeployment": false,
+          "size": "small"
+        }%{endif}
+      }
+
 resources:
   VPC_Main:
     type: CCI.VPC
@@ -1217,6 +1486,8 @@ resources:
                     - route /p add ${split(variable.netlayout.tep.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
                     - route /p add ${split(variable.netlayout.vpc.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
                     - route /p add ${split(variable.netlayout.trunk.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
+                    - cmd.exe /c mkdir c:\vcf
+                    - cmd.exe /c echo "${variable.vcf_deployment_json}" > C:\vcf\deploymen.json
                 guiUnattended:
                   autoLogon: true
                   autoLogonCount: 1
@@ -1279,269 +1550,4 @@ outputs:
         </tr>
         %{endfor}
       </table>
-  vcf_deployment_json:
-    value: |-
-      {
-        "version": "9.1.1.0",
-        "vcfInstanceName": "vcf",
-        "sddcId": "mgmt",
-        "workflowType": "VCF",
-        "ceipEnabled": false,
-        "skipEsxThumbprintValidation": true,
-        "dnsSpec": {
-          "subdomain": "${input.domain_name}",
-          "nameservers": [
-            "${variable.vyos_settings.mgmt_ip}"
-          ]
-        },
-        "ntpServers": [
-          "${variable.vyos_settings.fqdn}"
-        ],
-        "hostSpecs": [
-        %{for host in variable.esx_settings.servers}
-          %{if host.name != variable.esx_settings.servers[0].name},%{endif}
-          {
-            "hostname": "${host.name}.${input.domain_name}",
-            "credentials": {
-              "username": "${variable.esx_settings.credentials.username}",
-              "password": "${variable.esx_settings.credentials.password}"
-            }
-          }
-        %{endfor}
-        ],
-        "networkSpecs": [
-          {
-            "networkType": "MANAGEMENT",
-            "ipAddressVersion": "IPv4",
-            "subnet": "${variable.netlayout.mgmt.ipaddresses}",
-            "gateway": "${variable.netlayout.mgmt.defaultgw}",
-            "vlanId": ${variable.netlayout.mgmt.vlanid},
-            "activeUplinks": [
-              "uplink1",
-              "uplink2"
-            ],
-            "portGroupKey": "mgmt-cl01-vds01-pg-esx-mgmt",
-            "standbyUplinks": [],
-            "teamingPolicy": "loadbalance_loadbased"
-          },
-          {
-            "networkType": "VMOTION",
-            "ipAddressVersion": "IPv4",
-            "subnet": "${variable.netlayout.vmotion.ipaddresses}",
-            "gateway": "${variable.netlayout.vmotion.defaultgw}",
-            "vlanId": ${variable.netlayout.vmotion.vlanid},
-            "mtu": ${variable.netlayout.trunk.mtu},
-            "includeIpAddressRanges": [
-              {
-                "startIpAddress": "${variable.netlayout.vmotion.ip_pool.start}",
-                "endIpAddress": "${variable.netlayout.vmotion.ip_pool.end}"
-              }
-            ],
-            "activeUplinks": [
-              "uplink1",
-              "uplink2"
-            ],
-            "portGroupKey": "mgmt-cl01-vds01-pg-vmotion",
-            "standbyUplinks": [],
-            "teamingPolicy": "loadbalance_loadbased"
-          },
-          {
-            "networkType": "VSAN",
-            "ipAddressVersion": "IPv4",
-            "subnet": "${variable.netlayout.vsan.ipaddresses}",
-            "gateway": "${variable.netlayout.vsan.defaultgw}",
-            "vlanId": ${variable.netlayout.vsan.vlanid},
-            "mtu": ${variable.netlayout.trunk.mtu},
-            "includeIpAddressRanges": [
-              {
-                "startIpAddress": "${variable.netlayout.vsan.ip_pool.start}",
-                "endIpAddress": "${variable.netlayout.vsan.ip_pool.end}"
-              }
-            ],
-            "activeUplinks": [
-              "uplink1",
-              "uplink2"
-            ],
-            "portGroupKey": "mgmt-cl01-vds01-pg-vsan",
-            "standbyUplinks": [],
-            "teamingPolicy": "loadbalance_loadbased"
-          }
-        ],
-        "vspClusterSpec": {
-          "ipv4Pool": {
-            "ipRange": {
-              "startIpAddress": "${variable.vcf_settings.vsp.ip_pool.start}",
-              "endIpAddress": "${variable.vcf_settings.vsp.ip_pool.end}"
-            }
-          },
-          "platformFqdn": "${input.dns_prefix}vsp01.${input.domain_name}",
-          "instanceFqdn": "${input.dns_prefix}shared01.${input.domain_name}",
-          "fleetFqdn": "${input.dns_prefix}fleetlcm.${input.domain_name}",
-          "systemUserPassword": "${variable.vcf_settings.vsp.system_user_password}",
-          "size": "small",
-          "name": "vmsp-01",
-          "internalClusterCidrIpv4": "${variable.vcf_settings.vsp.internal_cluster_cidr}"
-        },
-        "nsxtSpec": {
-          "vipFqdn": "${input.dns_prefix}nsx01.${input.domain_name}",
-          "transportVlanId": ${variable.netlayout.tep.vlanid},
-          "ipAddressPoolSpec": {
-            "name": "${variable.netlayout.tep.ip_pool.name}",
-            "description": "${variable.netlayout.tep.ip_pool.description}",
-            "subnets": [
-              {
-                "cidr": "${variable.netlayout.tep.ipaddresses}",
-                "gateway": "${variable.netlayout.tep.defaultgw}",
-                "ipAddressPoolRanges": [
-                  {
-                    "start": "${variable.netlayout.tep.ip_pool.start}",
-                    "end": "${variable.netlayout.tep.ip_pool.end}"
-                  }
-                ]
-              }
-            ]
-          },
-          "nsxtManagerSize": "medium",
-          "nsxtAdminPassword": "${variable.vcf_settings.nsx.admin_password}",
-          "nsxtAuditPassword": "${variable.vcf_settings.nsx.audit_password}",
-          "rootNsxtManagerPassword": "${variable.vcf_settings.nsx.root_password}",
-          "useExistingDeployment": false,
-          "vpcSpec": {
-            "dtgwSpec": {
-              "vlan": ${variable.netlayout.vpc.vlanid},
-              "gatewayCidr": "${variable.netlayout.vpc.defaultgw}/24",
-              "externalIpBlockCidr": "${variable.netlayout.vpc.ipaddresses}",
-              "privateTgwIpBlockCidr": "172.31.0.0/16"
-            }
-          },
-          "nsxtManagers": [
-            {
-              "hostname": "${input.dns_prefix}nsx02.${input.domain_name}"
-            }
-          ]
-        },
-        "vcfOperationsSpec": {
-          "applianceSize": "small",
-          "adminUserPassword": "${variable.vcf_settings.operations.admin_password}",
-          "useExistingDeployment": false,
-          "nodes": [
-            {
-              "hostname": "${input.dns_prefix}ops01.${input.domain_name}",
-              "rootUserPassword": "${variable.vcf_settings.operations.root_password}",
-              "type": "master"
-            }
-          ]
-        },
-        "vcfOperationsCollectorSpec": {
-          "applianceSize": "small",
-          "hostname": "${input.dns_prefix}collector.${input.domain_name}",
-          "rootUserPassword": "${variable.vcf_settings.operations_collector.root_password}",
-          "useExistingDeployment": false
-        },
-        "licenseServerSpec": {
-          "hostname": "${input.dns_prefix}license.${input.domain_name}"
-        },
-        "vidbSpec": {
-          "hostname": "${input.dns_prefix}vidb.${input.domain_name}"
-        },
-        "saltSpec": {},
-        "saltRaasSpec": {},
-        "telemetryAcceptorSpec": {},
-        "fleetLcmSpec": {
-          "hostname": "${input.dns_prefix}fleetlcm.${input.domain_name}"
-        },
-        "sddcLcmSpec": {
-          "hostname": "${input.dns_prefix}shared01.${input.domain_name}"
-        },
-        "fleetDepotSpec": {},
-        "vcenterSpec": {
-          "vcenterHostname": "${input.dns_prefix}vc01.${input.domain_name}",
-          "adminUserSsoPassword": "${variable.vcf_settings.vcenter.admin_sso_password}",
-          "rootVcenterPassword": "${variable.vcf_settings.vcenter.root_password}",
-          "vmSize": "small",
-          "storageSize": "lstorage",
-          "ssoDomain": "vsphere.local",
-          "useExistingDeployment": false
-        },
-        "clusterSpec": {
-          "datacenterName": "mgmt-dc01",
-          "clusterName": "mgmt-cl01"
-        },
-        "datastoreSpec": {
-          "vsanSpec": {
-            "vsanDedup": false,
-            "failuresToTolerate": 1,
-            "esaConfig": {
-              "enabled": true,
-              "skipHclAutoDiskClaim": ${variable.vcf_settings.vsan.allow_hcl_incompatible_disks}
-            },
-            "datastoreName": "mgmt-cl01-ds-vsan01",
-            "encryptionConfig": {
-              "dataInTransitConfig": {
-                "enable": false
-              }
-            }
-          }
-        },
-        "dvsSpecs": [
-          {
-            "dvsName": "mgmt-cl01-vds01",
-            "networks": [
-              "MANAGEMENT",
-              "VMOTION",
-              "VSAN"
-            ],
-            "mtu": ${variable.netlayout.trunk.mtu},
-            "nsxtSwitchConfig": {
-              "transportZones": [
-                {
-                  "name": "overlay-tz-mgmt-nsxt",
-                  "transportType": "OVERLAY"
-                }
-              ]
-            },
-            "vmnicsToUplinks": [
-              {
-                "id": "vmnic0",
-                "uplink": "uplink1"
-              },
-              {
-                "id": "vmnic1",
-                "uplink": "uplink2"
-              }
-            ],
-            "nsxTeamings": [
-              {
-                "policy": "LOADBALANCE_SRCID",
-                "activeUplinks": [
-                  "uplink1",
-                  "uplink2"
-                ],
-                "standByUplinks": null
-              }
-            ],
-            "lagSpecs": null
-          }
-        ],
-        "sddcManagerSpec": {
-          "hostname": "${variable.vcf_settings.sddc_manager.fqdn}",
-          "localUserPassword": "${variable.vcf_settings.sddc_manager.local_user_password}",
-          "rootPassword": "${variable.vcf_settings.sddc_manager.root_password}",
-          "sshPassword": "${variable.vcf_settings.sddc_manager.ssh_password}",
-          "useExistingDeployment": false
-        }%{if input.install_automation == true},
-        "vcfAutomationSpec": {
-          "ipPool": [
-          %{for address in variable.vcf_settings.automation.ip_pool}
-            %{if address != variable.vcf_settings.automation.ip_pool[0]},%{endif}"${address}"
-          %{endfor}
-          ],
-          "hostname": "${input.dns_prefix}auto-vip.${input.domain_name}",
-          "platformFqdn": "${input.dns_prefix}auto-platform.${input.domain_name}",
-          "adminUserPassword": "${variable.vcf_settings.automation.admin_password}",
-          "nodePrefix": "mgmt-node-01",
-          "internalClusterCidr": "${variable.vcf_settings.automation.internal_cluster_cidr}",
-          "useExistingDeployment": false,
-          "size": "small"
-        }%{endif}
-      }
+  vcf_deployment_json: ${variable.vcf_deployment_json}
