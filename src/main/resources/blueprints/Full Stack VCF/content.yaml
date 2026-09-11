@@ -28,9 +28,9 @@ inputs:
   fabric_mtu:
     type: integer
     title: Nested Fabric MTU
-    default: 8000
+    default: 9000
     minimum: 1600
-    maximum: 8000
+    maximum: 9000
     description: IP MTU for the nested VyOS trunk, VCF system networks, and distributed switch; the outer NSX transport and physical network need additional encapsulation headroom
   vsan_allow_hcl_incompatible_disks:
     type: boolean
@@ -39,7 +39,7 @@ inputs:
     description: Allow vSAN ESA to claim non-HCL disks in the nested lab; maps to skipHclAutoDiskClaim in the VCF specification
   install_automation:
     type: boolean
-    title: Install Aria Automation
+    title: Install Aria Automation (Day 2)
     default: false
     description: Include VCF Automation in the generated VCF deployment specification
   esx_vsan_disk_enabled:
@@ -50,7 +50,7 @@ inputs:
   esx_vsan_disk_size_gib:
     type: integer
     title: Nested vSAN Disk Size (GiB)
-    default: 300
+    default: 100
     minimum: 1
     description: Capacity of the additional NVMe block volume attached to each nested ESXi host
   lab_password:
@@ -59,14 +59,12 @@ inputs:
     encrypted: false
     minLength: 15
     description: Plaintext credential for this disposable lab deployment; visible in the request and generated JSON
-    default: Password0!Password0!
   vyos_rest_api_key:
     type: string
     title: VyOS REST API Key
     encrypted: false
     minLength: 12
     description: Plaintext full-access REST API key for the disposable lab VyOS router
-    default: Password0!Password0!
 variables:
   bootstrap_secret_name: ${input.lab_name}-bootstrap-${env.shortDeploymentId}
   # --- Namespace & Environment Settings ---
@@ -347,53 +345,6 @@ variables:
   rev_zone_mgmt: ${variable.mgmt_oct3}.${variable.mgmt_oct2}.${variable.mgmt_oct1}.in-addr.arpa
   rev_zone_uplink: ${variable.uplink_oct3}.${variable.uplink_oct2}.${variable.uplink_oct1}.in-addr.arpa
   # --- VyOS supplemental configuration ---
-  ssh:
-    private_key: |
-      -----BEGIN OPENSSH PRIVATE KEY-----
-      b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn
-      NhAAAAAwEAAQAAAQEAqeyuvOsEK7DoF9S3xzIaiHa9UHZPmZjX8tLAcWQywgu5NumFH47W
-      E+LZwkace0nim+YiyYxhhuFHfbtWnjPG0ZyNOu+sPANO7JZO9jk/Po7vHynQ30uyIuZwdE
-      OmlNwzPzEYxGNnoAmC8z5t2nWxD5Q+OMoqyao7hOts2rV7nFqBGdePd3fBtlbIFUTZe3xd
-      ZuRzzAZAKolATuyZwreenSKC7m5+VOSYYouRppAbfC0KtxwHJSxTXFKeK7wu9F+pPZyspF
-      7ws9GSECJS62j8mTvAdfchHlGIkF0zSp5tggmsAVl9EYEv8mUUb00jYdAI32UahBrJljnm
-      V4hIclnNwwAAA9g1sA9XNbAPVwAAAAdzc2gtcnNhAAABAQCp7K686wQrsOgX1LfHMhqIdr
-      1Qdk+ZmNfy0sBxZDLCC7k26YUfjtYT4tnCRpx7SeKb5iLJjGGG4Ud9u1aeM8bRnI0676w8
-      A07slk72OT8+ju8fKdDfS7Ii5nB0Q6aU3DM/MRjEY2egCYLzPm3adbEPlD44yirJqjuE62
-      zatXucWoEZ1493d8G2VsgVRNl7fF1m5HPMBkAqiUBO7JnCt56dIoLubn5U5Jhii5GmkBt8
-      LQq3HAclLFNcUp4rvC70X6k9nKykXvCz0ZIQIlLraPyZO8B19yEeUYiQXTNKnm2CCawBWX
-      0RgS/yZRRvTSNh0AjfZRqEGsmWOeZXiEhyWc3DAAAAAwEAAQAAAQAy0lAcvqmbq6hu4Dcr
-      A4g+Ak1y0D/Ub4s+29ukzlQEB1+Y1dTz8FOE1RdN7LKGiT2WZQlIgIz2u1AXgb1RSakQLi
-      NrWh2IQXEMf5QUPmD1A+juyCHpdwlLOOKvU0BySz2ki7mdmyF2EwIwYB6Y9RRE1ZCaiZSs
-      hhaRFZyT+S2EQGyMfMp3jKme477z2NUoldDevZpTqb5XgngW7zc0RciWoijSgbJt2EaA+i
-      P/tbA98fb6Kj11md0iRwLyRBpRCuIU1DRg4M/v6/4IGE8P0sJAt+bEXGTX499S6r+boJJ5
-      Ox6u3fi8vu4o50Tyyv+cPPcG5py4brvkT9QJ4tm2Ai4hAAAAgQCM90JVaPgpzvbutIu03j
-      9Db+/bDoNl5Ld9Le4FOVe1ZcT5rvuyiIhNLmLETn9H6qltB0lPHhPelLAPwqfrDfZwI5rn
-      qU8TTEF19yeGI0C5p1qPD3vcEz85vSj7esddtG/xREgroTJjI9q/k2hXQfMy69VVLyv5rT
-      Mc3/BxBnfFDgAAAIEA1Q+MmAvpqGzu+DtWrtyIr0+NMChbxAA5BxXy9TwNrklNa2xJyGoJ
-      NnxIzMRrauizKbEIIaK0wpA7ZIYhRvqre8RYzPjIWF3dlPDcuALG9fhXA0+7q89pAOce1l
-      2cOKJqUKsZgXD+VPvF7GBeqKwBRHA3cdgJESf+maScPaqokBMAAACBAMwrmxtOXO/F6DMD
-      KlLG03rVkyVf4XhLykDo8vrgRcDIFnQ3cXs+B8v8sMCZ+YnN101cABNUAaUyK467mTNfQp
-      adbRO6g5TQGKnVdlT+a5ancqlfSq8mVTeTlpfgUxApsbiW53oH4HLSFfG2aGT2FZCtU0CK
-      K8+qK5HzIRK/s2GRAAAAHmFkdlxzZW1hdG9yMDAxQEFEU0UtNUNHNTM1ME1XRAECAwQ=
-      -----END OPENSSH PRIVATE KEY-----
-    public_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCp7K686wQrsOgX1LfHMhqIdr1Qdk+ZmNfy0sBxZDLCC7k26YUfjtYT4tnCRpx7SeKb5iLJjGGG4Ud9u1aeM8bRnI0676w8A07slk72OT8+ju8fKdDfS7Ii5nB0Q6aU3DM/MRjEY2egCYLzPm3adbEPlD44yirJqjuE62zatXucWoEZ1493d8G2VsgVRNl7fF1m5HPMBkAqiUBO7JnCt56dIoLubn5U5Jhii5GmkBt8LQq3HAclLFNcUp4rvC70X6k9nKykXvCz0ZIQIlLraPyZO8B19yEeUYiQXTNKnm2CCawBWX0RgS/yZRRvTSNh0AjfZRqEGsmWOeZXiEhyWc3D adv\semator001@ADSE-5CG5350MWD
-    config: |
-      Host ${variable.vyos_settings.hostname}
-          HostName ${variable.vyos_settings.fqdn}
-          User vyos
-          IdentityFile ~/.ssh/id_rsa
-      Host ${variable.installer_settings.hostname}
-          HostName ${variable.installer_settings.fqdn}
-          User root
-          IdentityFile ~/.ssh/id_rsa
-      %{for host in variable.esx_settings.servers}
-        Host ${variable.esx_settings.name}
-            HostName ${variable.esx_settings.ip}
-            User root
-            IdentityFile ~/.ssh/id_rsa
-      %{endfor}
-    private_key_parts: ${split}  
-
   vyos_config: |
     set interfaces ethernet __TRUNK_INTERFACE__ address ${variable.netlayout.trunk.defaultgw}/24
     set interfaces ethernet __TRUNK_INTERFACE__ mtu ${variable.netlayout.trunk.mtu}
@@ -465,6 +416,777 @@ variables:
 
     set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr 2 target ${variable.vyos_settings.fqdn}
     set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr 4 target ${variable.jumphost_settings.hostname}.${input.domain_name}
+resources:
+  VPC_Main:
+    type: CCI.VPC
+    properties:
+      regionName: ${variable.namespace_settings.region_name}
+      generateName: ${variable.vpc_settings.generate_name}
+      privateIPs:
+        - ${variable.vpc_settings.network}
+  VPC_Attachment:
+    type: CCI.VPC.Configuration
+    properties:
+      vpc: ${resource.VPC_Main.id}
+      kind: VPCAttachment
+      configs:
+        - generateName: ${variable.vpc_settings.attachment_generate_name}
+          spec:
+            vpcConnectivityProfileName: default--${variable.namespace_settings.region_name}
+      apiVersion: vpc.nsx.vmware.com/v1alpha1
+  VPC_IP_Allocation:
+    type: CCI.VPC.Configuration
+    dependsOn:
+      - VPC_Attachment
+    properties:
+      vpc: ${resource.VPC_Main.id}
+      kind: VPCIPAddressAllocation
+      configs:
+        - generateName: ${variable.vpc_settings.ip_alloc_name}
+          spec:
+            ipAddressBlockVisibility: External
+      apiVersion: vpc.nsx.vmware.com/v1alpha1
+  VPC_NAT_Rule_RDP:
+    type: CCI.VPC.Configuration
+    dependsOn:
+      - VPC_IP_Allocation
+    properties:
+      vpc: ${resource.VPC_Main.id}
+      kind: VPCNATRule
+      configs:
+        - generateName: ${variable.vpc_settings.nat_rule_name}
+          spec:
+            action: DNAT
+            destinationNetwork: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
+            enabled: true
+            firewallMatch: MatchInternalAddress
+            logging: false
+            sequenceNumber: 0
+            translatedNetwork: ${variable.jumphost_settings.ip}
+            serviceEntry:
+              destinationPorts: '3389'
+              protocol: TCP
+              translatedPorts: '3389'
+      apiVersion: vpc.nsx.vmware.com/v1alpha1
+      wait:
+        conditions:
+          - type: Realized
+            status: 'True'
+  Namespace:
+    type: CCI.Supervisor.Namespace
+    properties:
+      vpcName: ${resource.VPC_Main.name}
+      className: ${variable.namespace_settings.class_name}
+      regionName: ${variable.namespace_settings.region_name}
+      generateName: ${variable.namespace_settings.generate_name}
+      existing: false
+      segName: ${variable.namespace_settings.seg_name}
+      storageClasses:
+        - name: ${variable.namespace_settings.storage.policy}
+          limit: ${to_string(variable.namespace_settings.storage.limit)}
+      zones:
+        - name: ${variable.namespace_settings.zone.name}
+          cpuLimit: ${to_string(variable.namespace_settings.zone.cpu_limit)}
+          cpuReservation: ${to_string(variable.namespace_settings.zone.cpu_reservation)}
+          memoryLimit: ${to_string(variable.namespace_settings.zone.memory_limit)}
+          memoryReservation: ${to_string(variable.namespace_settings.zone.memory_reservation)}
+  # --- Management Network ---
+  Subnet_mgmt:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.mgmt.name}
+        spec:
+          accessMode: ${variable.netlayout.mgmt.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.mgmt.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+            - ${variable.netlayout.mgmt.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  SubnetConnectionBindingMap_mgmt:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Subnet_mgmt
+      - Subnet_trunk
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: SubnetConnectionBindingMap
+        metadata:
+          name: binding-${variable.netlayout.mgmt.name}
+        spec:
+          subnetName: ${variable.netlayout.mgmt.name}
+          targetSubnetName: ${variable.netlayout.trunk.name}
+          vlanTrafficTag: ${variable.netlayout.mgmt.vlanid}
+  # --- vMotion Network ---
+  Subnet_vmotion:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.vmotion.name}
+        spec:
+          accessMode: ${variable.netlayout.vmotion.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.vmotion.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+            - ${variable.netlayout.vmotion.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  SubnetConnectionBindingMap_vmotion:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Subnet_vmotion
+      - Subnet_trunk
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: SubnetConnectionBindingMap
+        metadata:
+          name: binding-${variable.netlayout.vmotion.name}
+        spec:
+          subnetName: ${variable.netlayout.vmotion.name}
+          targetSubnetName: ${variable.netlayout.trunk.name}
+          vlanTrafficTag: ${variable.netlayout.vmotion.vlanid}
+  # --- vSAN Network ---
+  Subnet_vsan:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.vsan.name}
+        spec:
+          accessMode: ${variable.netlayout.vsan.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.vsan.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+            - ${variable.netlayout.vsan.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  SubnetConnectionBindingMap_vsan:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Subnet_vsan
+      - Subnet_trunk
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: SubnetConnectionBindingMap
+        metadata:
+          name: binding-${variable.netlayout.vsan.name}
+        spec:
+          subnetName: ${variable.netlayout.vsan.name}
+          targetSubnetName: ${variable.netlayout.trunk.name}
+          vlanTrafficTag: ${variable.netlayout.vsan.vlanid}
+  # --- TEP Network ---
+  Subnet_tep:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.tep.name}
+        spec:
+          accessMode: ${variable.netlayout.tep.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.tep.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+            - ${variable.netlayout.tep.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  SubnetConnectionBindingMap_tep:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Subnet_tep
+      - Subnet_trunk
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: SubnetConnectionBindingMap
+        metadata:
+          name: binding-${variable.netlayout.tep.name}
+        spec:
+          subnetName: ${variable.netlayout.tep.name}
+          targetSubnetName: ${variable.netlayout.trunk.name}
+          vlanTrafficTag: ${variable.netlayout.tep.vlanid}
+  # --- VPC Uplink Network ---
+  Subnet_vpc:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.vpc.name}
+        spec:
+          accessMode: ${variable.netlayout.vpc.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.vpc.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+            - ${variable.netlayout.vpc.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  SubnetConnectionBindingMap_vpc:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Subnet_vpc
+      - Subnet_trunk
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: SubnetConnectionBindingMap
+        metadata:
+          name: binding-${variable.netlayout.vpc.name}
+        spec:
+          subnetName: ${variable.netlayout.vpc.name}
+          targetSubnetName: ${variable.netlayout.trunk.name}
+          vlanTrafficTag: ${variable.netlayout.vpc.vlanid}
+  # --- Infrastructure Subnets ---
+  Subnet_trunk:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.trunk.name}
+        spec:
+          accessMode: ${variable.netlayout.trunk.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.trunk.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+            - ${variable.netlayout.trunk.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  Subnet_uplink:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.uplink.name}
+        spec:
+          accessMode: ${variable.netlayout.uplink.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.uplink.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+            - ${variable.netlayout.uplink.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  # --- Namespace-scoped bootstrap credentials ---
+  Bootstrap_Secrets:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Namespace
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: ${variable.bootstrap_secret_name}
+        type: Opaque
+        stringData:
+          lab-password: ${input.lab_password}
+          vyos-rest-api-key: ${input.vyos_rest_api_key}
+  # --- VyOS Machine ---
+  VyOS_Machine:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Subnet_uplink
+      - Subnet_trunk
+      - Bootstrap_Secrets
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: vmoperator.vmware.com/v1alpha5
+        kind: VirtualMachine
+        metadata:
+          name: ${variable.vyos_settings.hostname}-${env.shortDeploymentId}
+        spec:
+          className: ${variable.vyos_settings.vm_class}
+          imageName: ${variable.vyos_settings.vm_image}
+          powerState: PoweredOn
+          storageClass: ${variable.namespace_settings.storage.policy}
+          network:
+            interfaces:
+              - name: uplink
+                network:
+                  apiVersion: crd.nsx.vmware.com/v1alpha1
+                  kind: Subnet
+                  name: ${resource.Subnet_uplink.manifest.metadata.name}
+              - name: trunk
+                network:
+                  apiVersion: crd.nsx.vmware.com/v1alpha1
+                  kind: Subnet
+                  name: ${resource.Subnet_trunk.manifest.metadata.name}
+          bootstrap:
+            vAppConfig:
+              properties:
+                - key: hostname
+                  value:
+                    value: ${variable.vyos_settings.fqdn}
+                - key: ipaddress
+                  value:
+                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
+                - key: netmask
+                  value:
+                    value: ${to_string(variable.vyos_settings.mgmt_mask)}
+                - key: gateway
+                  value:
+                    value: ${to_string(variable.vyos_settings.mgmt_gw)}
+                - key: dns
+                  value:
+                    value: ${to_string(variable.vyos_settings.dns.local_resolver)}
+                - key: domain
+                  value:
+                    value: ${to_string(input.domain_name)}
+                - key: ntp
+                  value:
+                    value: ${to_string(variable.vyos_settings.ntp.upstream_server)}
+                - key: password
+                  value:
+                    from:
+                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
+                      key: lab-password
+                - key: enable_ssh
+                  value:
+                    value: ${to_string(variable.vyos_settings.enable_ssh)}
+                - key: enable_rest
+                  value:
+                    value: ${to_string(variable.vyos_settings.enable_rest)}
+                - key: rest_api_key
+                  value:
+                    from:
+                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
+                      key: vyos-rest-api-key
+                - key: management_network
+                  value:
+                    value: ${to_string(variable.vyos_settings.management_network)}
+                - key: trunk_network
+                  value:
+                    value: ${to_string(variable.vyos_settings.trunk_network)}
+                - key: config_base64
+                  value:
+                    value: ${base64_encode(variable.vyos_config)}
+          wait:
+            conditions:
+              - type: VirtualMachineCreated
+                status: 'True'
+  # --- Optional vSAN capacity disks ---
+  ESXi_VSAN_Disks:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Namespace
+    allocatePerInstance: true
+    properties:
+      count: '${variable.esx_settings.vsan_disk.enabled == true ? length(variable.esx_settings.servers) : 0}'
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: ${variable.esx_settings.servers[count.index].name}-${variable.esx_settings.vsan_disk.claim_suffix}
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          volumeMode: Block
+          storageClassName: ${variable.esx_settings.vsan_disk.storage_class}
+          resources:
+            requests:
+              storage: ${variable.esx_settings.vsan_disk.size}
+  # --- ESXi Hosts with a vSAN capacity disk ---
+  VM_ESXs:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Subnet_trunk
+      - SubnetConnectionBindingMap_mgmt
+      - SubnetConnectionBindingMap_vmotion
+      - SubnetConnectionBindingMap_vsan
+      - SubnetConnectionBindingMap_tep
+      - SubnetConnectionBindingMap_vpc
+      - VyOS_Machine
+      - Bootstrap_Secrets
+      - ESXi_VSAN_Disks
+    allocatePerInstance: true
+    properties:
+      count: '${variable.esx_settings.vsan_disk.enabled == true ? length(variable.esx_settings.servers) : 0}'
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: vmoperator.vmware.com/v1alpha5
+        kind: VirtualMachine
+        metadata:
+          name: ${variable.esx_settings.servers[count.index].name}
+        spec:
+          className: ${variable.esx_settings.vm_class}
+          imageName: ${variable.esx_settings.vm_image}
+          powerState: PoweredOn
+          storageClass: ${variable.namespace_settings.storage.policy}
+          hardware:
+            nvmeControllers:
+              - busNumber: 0
+                sharingMode: None
+          volumes:
+            - name: vsan-capacity
+              controllerType: NVME
+              controllerBusNumber: 0
+              unitNumber: 0
+              diskMode: IndependentPersistent
+              sharingMode: None
+              persistentVolumeClaim:
+                claimName: ${variable.esx_settings.servers[count.index].name}-${variable.esx_settings.vsan_disk.claim_suffix}
+          network:
+            interfaces:
+              - name: eth0
+                network:
+                  apiVersion: crd.nsx.vmware.com/v1alpha1
+                  kind: Subnet
+                  name: ${variable.netlayout.trunk.name}
+              - name: eth1
+                network:
+                  apiVersion: crd.nsx.vmware.com/v1alpha1
+                  kind: Subnet
+                  name: ${variable.netlayout.trunk.name}
+          bootstrap:
+            vAppConfig:
+              properties:
+                - key: guestinfo.password
+                  value:
+                    from:
+                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
+                      key: lab-password
+                - key: guestinfo.ipaddress
+                  value:
+                    value: ${to_string(variable.esx_settings.servers[count.index].ip)}
+                - key: guestinfo.netmask
+                  value:
+                    value: 255.255.255.0
+                - key: guestinfo.gateway
+                  value:
+                    value: ${to_string(variable.netlayout.mgmt.defaultgw)}
+                - key: guestinfo.hostname
+                  value:
+                    value: ${variable.esx_settings.servers[count.index].name}.${input.domain_name}
+                - key: guestinfo.dns
+                  value:
+                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
+                - key: guestinfo.domain
+                  value:
+                    value: ${to_string(input.domain_name)}
+                - key: guestinfo.ntp
+                  value:
+                    value: ${to_string(variable.vyos_settings.fqdn)}
+                - key: guestinfo.ssh
+                  value:
+                    value: 'true'
+                - key: guestinfo.vlan
+                  value:
+                    value: ${to_string(variable.netlayout.mgmt.vlanid)}
+          wait:
+            conditions:
+              - type: VirtualMachineCreated
+                status: 'True'
+  # --- ESXi Hosts without a vSAN capacity disk ---
+  VM_ESXs_Boot_Only:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Subnet_trunk
+      - SubnetConnectionBindingMap_mgmt
+      - SubnetConnectionBindingMap_vmotion
+      - SubnetConnectionBindingMap_vsan
+      - SubnetConnectionBindingMap_tep
+      - SubnetConnectionBindingMap_vpc
+      - VyOS_Machine
+      - Bootstrap_Secrets
+    allocatePerInstance: true
+    properties:
+      count: '${variable.esx_settings.vsan_disk.enabled == true ? 0 : length(variable.esx_settings.servers)}'
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: vmoperator.vmware.com/v1alpha5
+        kind: VirtualMachine
+        metadata:
+          name: ${variable.esx_settings.servers[count.index].name}
+        spec:
+          className: ${variable.esx_settings.vm_class}
+          imageName: ${variable.esx_settings.vm_image}
+          powerState: PoweredOn
+          storageClass: ${variable.namespace_settings.storage.policy}
+          network:
+            interfaces:
+              - name: eth0
+                network:
+                  apiVersion: crd.nsx.vmware.com/v1alpha1
+                  kind: Subnet
+                  name: ${variable.netlayout.trunk.name}
+              - name: eth1
+                network:
+                  apiVersion: crd.nsx.vmware.com/v1alpha1
+                  kind: Subnet
+                  name: ${variable.netlayout.trunk.name}
+          bootstrap:
+            vAppConfig:
+              properties:
+                - key: guestinfo.password
+                  value:
+                    from:
+                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
+                      key: lab-password
+                - key: guestinfo.ipaddress
+                  value:
+                    value: ${to_string(variable.esx_settings.servers[count.index].ip)}
+                - key: guestinfo.netmask
+                  value:
+                    value: 255.255.255.0
+                - key: guestinfo.gateway
+                  value:
+                    value: ${to_string(variable.netlayout.mgmt.defaultgw)}
+                - key: guestinfo.hostname
+                  value:
+                    value: ${variable.esx_settings.servers[count.index].name}.${input.domain_name}
+                - key: guestinfo.dns
+                  value:
+                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
+                - key: guestinfo.domain
+                  value:
+                    value: ${to_string(input.domain_name)}
+                - key: guestinfo.ntp
+                  value:
+                    value: ${to_string(variable.vyos_settings.fqdn)}
+                - key: guestinfo.ssh
+                  value:
+                    value: 'true'
+                - key: guestinfo.vlan
+                  value:
+                    value: ${to_string(variable.netlayout.mgmt.vlanid)}
+          wait:
+            conditions:
+              - type: VirtualMachineCreated
+                status: 'True'
+  # --- VCF Installer VM ---
+  Installer_VM:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Subnet_mgmt
+      - SubnetConnectionBindingMap_mgmt
+      - VyOS_Machine
+      - Bootstrap_Secrets
+    properties:
+      context: ${resource.Namespace.id}
+      wait:
+        conditions:
+          - type: VirtualMachineCreated
+            status: 'True'
+      manifest:
+        apiVersion: vmoperator.vmware.com/v1alpha3
+        kind: VirtualMachine
+        metadata:
+          name: ${variable.installer_settings.hostname}
+        spec:
+          className: ${variable.installer_settings.vm_class}
+          imageName: ${variable.installer_settings.vm_image}
+          powerState: PoweredOn
+          storageClass: ${variable.namespace_settings.storage.policy}
+          network:
+            interfaces:
+              - addresses:
+                  - ${variable.installer_settings.ip}/32
+                name: eth0
+                network:
+                  name: ${variable.netlayout.mgmt.name}
+                  kind: Subnet
+          bootstrap:
+            vAppConfig:
+              properties:
+                - key: ROOT_PASSWORD
+                  value:
+                    from:
+                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
+                      key: lab-password
+                - key: LOCAL_USER_PASSWORD
+                  value:
+                    from:
+                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
+                      key: lab-password
+                - key: vami.hostname
+                  value:
+                    value: ${variable.installer_settings.fqdn}
+                - key: guestinfo.ntp
+                  value:
+                    value: ${to_string(variable.vyos_settings.fqdn)}
+                - key: ip_address_version
+                  value:
+                    value: IPv4
+                - key: ip0
+                  value:
+                    value: ${to_string(variable.installer_settings.ip)}
+                - key: netmask0
+                  value:
+                    value: 255.255.255.0
+                - key: gateway
+                  value:
+                    value: ${to_string(variable.netlayout.mgmt.defaultgw)}
+                - key: domain
+                  value:
+                    value: ${to_string(input.domain_name)}
+                - key: searchpath
+                  value:
+                    value: ${to_string(input.domain_name)}
+                - key: DNS
+                  value:
+                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
+  # --- Windows Jumphost VM ---
+  Jumphost_VM:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+      - Subnet_uplink
+      - SubnetConnectionBindingMap_mgmt
+      - SubnetConnectionBindingMap_vmotion
+      - SubnetConnectionBindingMap_vsan
+      - SubnetConnectionBindingMap_tep
+      - SubnetConnectionBindingMap_vpc
+      - VyOS_Machine
+      - Bootstrap_Secrets
+    properties:
+      context: ${resource.Namespace.id}
+      wait:
+        conditions:
+          - type: VirtualMachineCreated
+            status: 'True'
+      manifest:
+        apiVersion: vmoperator.vmware.com/v1alpha5
+        kind: VirtualMachine
+        metadata:
+          name: ${variable.jumphost_settings.hostname}
+        spec:
+          className: ${variable.jumphost_settings.vm_class}
+          imageName: ${variable.jumphost_settings.vm_image}
+          powerState: PoweredOn
+          storageClass: ${variable.namespace_settings.storage.policy}
+          network:
+            hostName: ${variable.jumphost_settings.hostname}
+            nameservers:
+              - ${variable.vyos_settings.mgmt_ip}
+            searchDomains:
+              - ${input.domain_name}
+            interfaces:
+              - name: eth0
+                addresses:
+                  - ${variable.jumphost_settings.ip}/24
+                gateway4: ${variable.netlayout.uplink.defaultgw}
+                network:
+                  apiVersion: crd.nsx.vmware.com/v1alpha1
+                  kind: Subnet
+                  name: ${variable.netlayout.uplink.name}
+          bootstrap:
+            sysprep:
+              sysprep:
+                guiRunOnce:
+                  commands:
+                    - route /p add ${split(variable.netlayout.mgmt.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
+                    - route /p add ${split(variable.netlayout.vmotion.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
+                    - route /p add ${split(variable.netlayout.vsan.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
+                    - route /p add ${split(variable.netlayout.tep.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
+                    - route /p add ${split(variable.netlayout.vpc.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
+                    - route /p add ${split(variable.netlayout.trunk.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
+                guiUnattended:
+                  autoLogon: true
+                  autoLogonCount: 1
+                  password:
+                    name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
+                    key: lab-password
+                userData:
+                  fullName: DCLab Admin
+                  orgName: DCLab
+outputs:
+  __deploymentOverview:
+    value: |-
+      ## VCF Lab Environment Overview
+
+      The VMware Cloud Foundation lab resources have been provisioned.
+      The table below summarizes the instances created in the namespace.
+
+      #### Remote Access (RDP to Jumphost)
+      **Public IP:** ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
+      **Port:** 3389
+      **Username:** Administrator
+
+      #### Virtual Machines
+      <table class="table">
+        <tr>
+          <th>Role</th>
+          <th>Hostname</th>
+          <th>IP Address</th>
+          <th>Username</th>
+          <th>Class</th>
+        </tr>
+        <tr>
+          <td><strong>VyOS Router</strong></td>
+          <td>${variable.vyos_settings.hostname}.${input.domain_name}</td>
+          <td>${variable.vyos_settings.mgmt_ip}</td>
+          <td>vyos</td>
+          <td><span class="label label-info">${variable.vyos_settings.vm_class}</span></td>
+        </tr>
+        <tr>
+          <td><strong>Windows Jumphost</strong></td>
+          <td>${variable.jumphost_settings.hostname}.${input.domain_name}</td>
+          <td>${variable.jumphost_settings.ip}</td>
+          <td>Administrator</td>
+          <td><span class="label label-info">${variable.jumphost_settings.vm_class}</span></td>
+        </tr>
+        <tr>
+          <td><strong>VCF Installer</strong></td>
+          <td>${variable.installer_settings.hostname}.${input.domain_name}</td>
+          <td>${variable.installer_settings.ip}</td>
+          <td>root</td>
+          <td><span class="label label-info">${variable.installer_settings.vm_class}</span></td>
+        </tr>
+        %{for host in variable.esx_settings.servers}
+        <tr>
+          <td><strong>ESXi Host</strong></td>
+          <td>${host.name}.${input.domain_name}</td>
+          <td>${host.ip}</td>
+          <td>${variable.esx_settings.credentials.username}</td>
+          <td><span class="label label-info">${variable.esx_settings.vm_class}</span></td>
+        </tr>
+        %{endfor}
+      </table>
   vcf_deployment_json:
     value: |-
       {
@@ -731,872 +1453,3 @@ variables:
           "size": "small"
         }%{endif}
       }
-
-resources:
-  VPC_Main:
-    type: CCI.VPC
-    metadata:
-      layoutPosition:
-        - 1
-        - 1
-    properties:
-      regionName: ${variable.namespace_settings.region_name}
-      generateName: ${variable.vpc_settings.generate_name}
-      privateIPs:
-        - ${variable.vpc_settings.network}
-  VPC_Attachment:
-    type: CCI.VPC.Configuration
-    metadata:
-      layoutPosition:
-        - 1
-        - 3
-    properties:
-      vpc: ${resource.VPC_Main.id}
-      kind: VPCAttachment
-      configs:
-        - generateName: ${variable.vpc_settings.attachment_generate_name}
-          spec:
-            vpcConnectivityProfileName: default--${variable.namespace_settings.region_name}
-      apiVersion: vpc.nsx.vmware.com/v1alpha1
-  VPC_IP_Allocation:
-    type: CCI.VPC.Configuration
-    dependsOn:
-      - VPC_Attachment
-    metadata:
-      layoutPosition:
-        - 1
-        - 2
-    properties:
-      vpc: ${resource.VPC_Main.id}
-      kind: VPCIPAddressAllocation
-      configs:
-        - generateName: ${variable.vpc_settings.ip_alloc_name}
-          spec:
-            ipAddressBlockVisibility: External
-      apiVersion: vpc.nsx.vmware.com/v1alpha1
-  VPC_NAT_Rule_RDP:
-    type: CCI.VPC.Configuration
-    dependsOn:
-      - VPC_IP_Allocation
-    metadata:
-      layoutPosition:
-        - 1
-        - 1
-    properties:
-      vpc: ${resource.VPC_Main.id}
-      kind: VPCNATRule
-      configs:
-        - generateName: ${variable.vpc_settings.nat_rule_name}
-          spec:
-            action: DNAT
-            destinationNetwork: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
-            enabled: true
-            firewallMatch: MatchInternalAddress
-            logging: false
-            sequenceNumber: 0
-            translatedNetwork: ${variable.jumphost_settings.ip}
-            serviceEntry:
-              destinationPorts: '3389'
-              protocol: TCP
-              translatedPorts: '3389'
-      apiVersion: vpc.nsx.vmware.com/v1alpha1
-      wait:
-        conditions:
-          - type: Realized
-            status: 'True'
-  Namespace:
-    type: CCI.Supervisor.Namespace
-    metadata:
-      layoutPosition:
-        - 1
-        - 0
-    properties:
-      vpcName: ${resource.VPC_Main.name}
-      className: ${variable.namespace_settings.class_name}
-      regionName: ${variable.namespace_settings.region_name}
-      generateName: ${variable.namespace_settings.generate_name}
-      existing: false
-      segName: ${variable.namespace_settings.seg_name}
-      storageClasses:
-        - name: ${variable.namespace_settings.storage.policy}
-          limit: ${to_string(variable.namespace_settings.storage.limit)}
-      zones:
-        - name: ${variable.namespace_settings.zone.name}
-          cpuLimit: ${to_string(variable.namespace_settings.zone.cpu_limit)}
-          cpuReservation: ${to_string(variable.namespace_settings.zone.cpu_reservation)}
-          memoryLimit: ${to_string(variable.namespace_settings.zone.memory_limit)}
-          memoryReservation: ${to_string(variable.namespace_settings.zone.memory_reservation)}
-  # --- Management Network ---
-  Subnet_mgmt:
-    type: CCI.Supervisor.Resource
-    metadata:
-      layoutPosition:
-        - 2
-        - 3
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: crd.nsx.vmware.com/v1alpha1
-        kind: Subnet
-        metadata:
-          name: ${variable.netlayout.mgmt.name}
-        spec:
-          accessMode: ${variable.netlayout.mgmt.access_mode}
-          advancedConfig:
-            connectivityState: ${variable.netlayout.mgmt.connectivity_state}
-            staticIPAllocation:
-              enabled: true
-          ipAddresses:
-            - ${variable.netlayout.mgmt.ipaddresses}
-          subnetDHCPConfig:
-            mode: DHCPDeactivated
-  SubnetConnectionBindingMap_mgmt:
-    type: CCI.Supervisor.Resource
-    dependsOn:
-      - Subnet_mgmt
-      - Subnet_trunk
-    metadata:
-      layoutPosition:
-        - 4
-        - 3
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: crd.nsx.vmware.com/v1alpha1
-        kind: SubnetConnectionBindingMap
-        metadata:
-          name: binding-${variable.netlayout.mgmt.name}
-        spec:
-          subnetName: ${variable.netlayout.mgmt.name}
-          targetSubnetName: ${variable.netlayout.trunk.name}
-          vlanTrafficTag: ${variable.netlayout.mgmt.vlanid}
-  # --- vMotion Network ---
-  Subnet_vmotion:
-    type: CCI.Supervisor.Resource
-    metadata:
-      layoutPosition:
-        - 5
-        - 3
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: crd.nsx.vmware.com/v1alpha1
-        kind: Subnet
-        metadata:
-          name: ${variable.netlayout.vmotion.name}
-        spec:
-          accessMode: ${variable.netlayout.vmotion.access_mode}
-          advancedConfig:
-            connectivityState: ${variable.netlayout.vmotion.connectivity_state}
-            staticIPAllocation:
-              enabled: true
-          ipAddresses:
-            - ${variable.netlayout.vmotion.ipaddresses}
-          subnetDHCPConfig:
-            mode: DHCPDeactivated
-  SubnetConnectionBindingMap_vmotion:
-    type: CCI.Supervisor.Resource
-    dependsOn:
-      - Subnet_vmotion
-      - Subnet_trunk
-    metadata:
-      layoutPosition:
-        - 2
-        - 4
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: crd.nsx.vmware.com/v1alpha1
-        kind: SubnetConnectionBindingMap
-        metadata:
-          name: binding-${variable.netlayout.vmotion.name}
-        spec:
-          subnetName: ${variable.netlayout.vmotion.name}
-          targetSubnetName: ${variable.netlayout.trunk.name}
-          vlanTrafficTag: ${variable.netlayout.vmotion.vlanid}
-  # --- vSAN Network ---
-  Subnet_vsan:
-    type: CCI.Supervisor.Resource
-    metadata:
-      layoutPosition:
-        - 1
-        - 5
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: crd.nsx.vmware.com/v1alpha1
-        kind: Subnet
-        metadata:
-          name: ${variable.netlayout.vsan.name}
-        spec:
-          accessMode: ${variable.netlayout.vsan.access_mode}
-          advancedConfig:
-            connectivityState: ${variable.netlayout.vsan.connectivity_state}
-            staticIPAllocation:
-              enabled: true
-          ipAddresses:
-            - ${variable.netlayout.vsan.ipaddresses}
-          subnetDHCPConfig:
-            mode: DHCPDeactivated
-  SubnetConnectionBindingMap_vsan:
-    type: CCI.Supervisor.Resource
-    dependsOn:
-      - Subnet_vsan
-      - Subnet_trunk
-    metadata:
-      layoutPosition:
-        - 4
-        - 4
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: crd.nsx.vmware.com/v1alpha1
-        kind: SubnetConnectionBindingMap
-        metadata:
-          name: binding-${variable.netlayout.vsan.name}
-        spec:
-          subnetName: ${variable.netlayout.vsan.name}
-          targetSubnetName: ${variable.netlayout.trunk.name}
-          vlanTrafficTag: ${variable.netlayout.vsan.vlanid}
-  # --- TEP Network ---
-  Subnet_tep:
-    type: CCI.Supervisor.Resource
-    metadata:
-      layoutPosition:
-        - 5
-        - 5
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: crd.nsx.vmware.com/v1alpha1
-        kind: Subnet
-        metadata:
-          name: ${variable.netlayout.tep.name}
-        spec:
-          accessMode: ${variable.netlayout.tep.access_mode}
-          advancedConfig:
-            connectivityState: ${variable.netlayout.tep.connectivity_state}
-            staticIPAllocation:
-              enabled: true
-          ipAddresses:
-            - ${variable.netlayout.tep.ipaddresses}
-          subnetDHCPConfig:
-            mode: DHCPDeactivated
-  SubnetConnectionBindingMap_tep:
-    type: CCI.Supervisor.Resource
-    dependsOn:
-      - Subnet_tep
-      - Subnet_trunk
-    metadata:
-      layoutPosition:
-        - 2
-        - 2
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: crd.nsx.vmware.com/v1alpha1
-        kind: SubnetConnectionBindingMap
-        metadata:
-          name: binding-${variable.netlayout.tep.name}
-        spec:
-          subnetName: ${variable.netlayout.tep.name}
-          targetSubnetName: ${variable.netlayout.trunk.name}
-          vlanTrafficTag: ${variable.netlayout.tep.vlanid}
-  # --- VPC Uplink Network ---
-  Subnet_vpc:
-    type: CCI.Supervisor.Resource
-    metadata:
-      layoutPosition:
-        - 1
-        - 1
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: crd.nsx.vmware.com/v1alpha1
-        kind: Subnet
-        metadata:
-          name: ${variable.netlayout.vpc.name}
-        spec:
-          accessMode: ${variable.netlayout.vpc.access_mode}
-          advancedConfig:
-            connectivityState: ${variable.netlayout.vpc.connectivity_state}
-            staticIPAllocation:
-              enabled: true
-          ipAddresses:
-            - ${variable.netlayout.vpc.ipaddresses}
-          subnetDHCPConfig:
-            mode: DHCPDeactivated
-  SubnetConnectionBindingMap_vpc:
-    type: CCI.Supervisor.Resource
-    dependsOn:
-      - Subnet_vpc
-      - Subnet_trunk
-    metadata:
-      layoutPosition:
-        - 4
-        - 2
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: crd.nsx.vmware.com/v1alpha1
-        kind: SubnetConnectionBindingMap
-        metadata:
-          name: binding-${variable.netlayout.vpc.name}
-        spec:
-          subnetName: ${variable.netlayout.vpc.name}
-          targetSubnetName: ${variable.netlayout.trunk.name}
-          vlanTrafficTag: ${variable.netlayout.vpc.vlanid}
-  # --- Infrastructure Subnets ---
-  Subnet_trunk:
-    type: CCI.Supervisor.Resource
-    metadata:
-      layoutPosition:
-        - 3
-        - 3
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: crd.nsx.vmware.com/v1alpha1
-        kind: Subnet
-        metadata:
-          name: ${variable.netlayout.trunk.name}
-        spec:
-          accessMode: ${variable.netlayout.trunk.access_mode}
-          advancedConfig:
-            connectivityState: ${variable.netlayout.trunk.connectivity_state}
-            staticIPAllocation:
-              enabled: true
-          ipAddresses:
-            - ${variable.netlayout.trunk.ipaddresses}
-          subnetDHCPConfig:
-            mode: DHCPDeactivated
-  Subnet_uplink:
-    type: CCI.Supervisor.Resource
-    metadata:
-      layoutPosition:
-        - 3
-        - 4
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: crd.nsx.vmware.com/v1alpha1
-        kind: Subnet
-        metadata:
-          name: ${variable.netlayout.uplink.name}
-        spec:
-          accessMode: ${variable.netlayout.uplink.access_mode}
-          advancedConfig:
-            connectivityState: ${variable.netlayout.uplink.connectivity_state}
-            staticIPAllocation:
-              enabled: true
-          ipAddresses:
-            - ${variable.netlayout.uplink.ipaddresses}
-          subnetDHCPConfig:
-            mode: DHCPDeactivated
-  # --- Namespace-scoped bootstrap credentials ---
-  Bootstrap_Secrets:
-    type: CCI.Supervisor.Resource
-    dependsOn:
-      - Namespace
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          name: ${variable.bootstrap_secret_name}
-        type: Opaque
-        stringData:
-          lab-password: ${input.lab_password}
-          vyos-rest-api-key: ${input.vyos_rest_api_key}
-  # --- VyOS Machine ---
-  VyOS_Machine:
-    type: CCI.Supervisor.Resource
-    dependsOn:
-      - Subnet_uplink
-      - Subnet_trunk
-      - Bootstrap_Secrets
-    metadata:
-      layoutPosition:
-        - 3
-        - 2
-    properties:
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: vmoperator.vmware.com/v1alpha5
-        kind: VirtualMachine
-        metadata:
-          name: ${variable.vyos_settings.hostname}-${env.shortDeploymentId}
-        spec:
-          className: ${variable.vyos_settings.vm_class}
-          imageName: ${variable.vyos_settings.vm_image}
-          powerState: PoweredOn
-          storageClass: ${variable.namespace_settings.storage.policy}
-          network:
-            interfaces:
-              - name: uplink
-                network:
-                  apiVersion: crd.nsx.vmware.com/v1alpha1
-                  kind: Subnet
-                  name: ${resource.Subnet_uplink.manifest.metadata.name}
-              - name: trunk
-                network:
-                  apiVersion: crd.nsx.vmware.com/v1alpha1
-                  kind: Subnet
-                  name: ${resource.Subnet_trunk.manifest.metadata.name}
-          bootstrap:
-            vAppConfig:
-              properties:
-                - key: hostname
-                  value:
-                    value: ${variable.vyos_settings.fqdn}
-                - key: ipaddress
-                  value:
-                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
-                - key: netmask
-                  value:
-                    value: ${to_string(variable.vyos_settings.mgmt_mask)}
-                - key: gateway
-                  value:
-                    value: ${to_string(variable.vyos_settings.mgmt_gw)}
-                - key: dns
-                  value:
-                    value: ${to_string(variable.vyos_settings.dns.local_resolver)}
-                - key: domain
-                  value:
-                    value: ${to_string(input.domain_name)}
-                - key: ntp
-                  value:
-                    value: ${to_string(variable.vyos_settings.ntp.upstream_server)}
-                - key: password
-                  value:
-                    from:
-                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
-                      key: lab-password
-                - key: enable_ssh
-                  value:
-                    value: ${to_string(variable.vyos_settings.enable_ssh)}
-                - key: enable_rest
-                  value:
-                    value: ${to_string(variable.vyos_settings.enable_rest)}
-                - key: rest_api_key
-                  value:
-                    from:
-                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
-                      key: vyos-rest-api-key
-                - key: management_network
-                  value:
-                    value: ${to_string(variable.vyos_settings.management_network)}
-                - key: trunk_network
-                  value:
-                    value: ${to_string(variable.vyos_settings.trunk_network)}
-                - key: config_base64
-                  value:
-                    value: ${base64_encode(variable.vyos_config)}
-          wait:
-            conditions:
-              - type: VirtualMachineCreated
-                status: 'True'
-  # --- Optional vSAN capacity disks ---
-  ESXi_VSAN_Disks:
-    type: CCI.Supervisor.Resource
-    dependsOn:
-      - Namespace
-    metadata:
-      layoutPosition:
-        - 2
-        - 1
-    allocatePerInstance: true
-    properties:
-      count: '${variable.esx_settings.vsan_disk.enabled == true ? length(variable.esx_settings.servers) : 0}'
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: v1
-        kind: PersistentVolumeClaim
-        metadata:
-          name: ${variable.esx_settings.servers[count.index].name}-${variable.esx_settings.vsan_disk.claim_suffix}
-        spec:
-          accessModes:
-            - ReadWriteOnce
-          volumeMode: Block
-          storageClassName: ${variable.esx_settings.vsan_disk.storage_class}
-          resources:
-            requests:
-              storage: ${variable.esx_settings.vsan_disk.size}
-  # --- ESXi Hosts with a vSAN capacity disk ---
-  VM_ESXs:
-    type: CCI.Supervisor.Resource
-    dependsOn:
-      - Subnet_trunk
-      - SubnetConnectionBindingMap_mgmt
-      - SubnetConnectionBindingMap_vmotion
-      - SubnetConnectionBindingMap_vsan
-      - SubnetConnectionBindingMap_tep
-      - SubnetConnectionBindingMap_vpc
-      - VyOS_Machine
-      - Bootstrap_Secrets
-      - ESXi_VSAN_Disks
-    metadata:
-      layoutPosition:
-        - 3
-        - 1
-    allocatePerInstance: true
-    properties:
-      count: '${variable.esx_settings.vsan_disk.enabled == true ? length(variable.esx_settings.servers) : 0}'
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: vmoperator.vmware.com/v1alpha5
-        kind: VirtualMachine
-        metadata:
-          name: ${variable.esx_settings.servers[count.index].name}
-        spec:
-          className: ${variable.esx_settings.vm_class}
-          imageName: ${variable.esx_settings.vm_image}
-          powerState: PoweredOn
-          storageClass: ${variable.namespace_settings.storage.policy}
-          hardware:
-            nvmeControllers:
-              - busNumber: 0
-                sharingMode: None
-          volumes:
-            - name: vsan-capacity
-              controllerType: NVME
-              controllerBusNumber: 0
-              unitNumber: 0
-              diskMode: IndependentPersistent
-              sharingMode: None
-              persistentVolumeClaim:
-                claimName: ${variable.esx_settings.servers[count.index].name}-${variable.esx_settings.vsan_disk.claim_suffix}
-          network:
-            interfaces:
-              - name: eth0
-                network:
-                  apiVersion: crd.nsx.vmware.com/v1alpha1
-                  kind: Subnet
-                  name: ${variable.netlayout.trunk.name}
-              - name: eth1
-                network:
-                  apiVersion: crd.nsx.vmware.com/v1alpha1
-                  kind: Subnet
-                  name: ${variable.netlayout.trunk.name}
-          bootstrap:
-            vAppConfig:
-              properties:
-                - key: guestinfo.password
-                  value:
-                    from:
-                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
-                      key: lab-password
-                - key: guestinfo.ipaddress
-                  value:
-                    value: ${to_string(variable.esx_settings.servers[count.index].ip)}
-                - key: guestinfo.netmask
-                  value:
-                    value: 255.255.255.0
-                - key: guestinfo.gateway
-                  value:
-                    value: ${to_string(variable.netlayout.mgmt.defaultgw)}
-                - key: guestinfo.hostname
-                  value:
-                    value: ${variable.esx_settings.servers[count.index].name}.${input.domain_name}
-                - key: guestinfo.dns
-                  value:
-                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
-                - key: guestinfo.domain
-                  value:
-                    value: ${to_string(input.domain_name)}
-                - key: guestinfo.ntp
-                  value:
-                    value: ${to_string(variable.vyos_settings.fqdn)}
-                - key: guestinfo.ssh
-                  value:
-                    value: 'true'
-                - key: guestinfo.vlan
-                  value:
-                    value: ${to_string(variable.netlayout.mgmt.vlanid)}
-                - key: guestinfo.ssh_key
-                  value:
-                    value: ${to_string(variable.ssh.public_key)}
-          wait:
-            conditions:
-              - type: VirtualMachineCreated
-                status: 'True'
-  # --- ESXi Hosts without a vSAN capacity disk ---
-  VM_ESXs_Boot_Only:
-    type: CCI.Supervisor.Resource
-    dependsOn:
-      - Subnet_trunk
-      - SubnetConnectionBindingMap_mgmt
-      - SubnetConnectionBindingMap_vmotion
-      - SubnetConnectionBindingMap_vsan
-      - SubnetConnectionBindingMap_tep
-      - SubnetConnectionBindingMap_vpc
-      - VyOS_Machine
-      - Bootstrap_Secrets
-    metadata:
-      layoutPosition:
-        - 4
-        - 1
-    allocatePerInstance: true
-    properties:
-      count: '${variable.esx_settings.vsan_disk.enabled == true ? 0 : length(variable.esx_settings.servers)}'
-      context: ${resource.Namespace.id}
-      manifest:
-        apiVersion: vmoperator.vmware.com/v1alpha5
-        kind: VirtualMachine
-        metadata:
-          name: ${variable.esx_settings.servers[count.index].name}
-        spec:
-          className: ${variable.esx_settings.vm_class}
-          imageName: ${variable.esx_settings.vm_image}
-          powerState: PoweredOn
-          storageClass: ${variable.namespace_settings.storage.policy}
-          network:
-            interfaces:
-              - name: eth0
-                network:
-                  apiVersion: crd.nsx.vmware.com/v1alpha1
-                  kind: Subnet
-                  name: ${variable.netlayout.trunk.name}
-              - name: eth1
-                network:
-                  apiVersion: crd.nsx.vmware.com/v1alpha1
-                  kind: Subnet
-                  name: ${variable.netlayout.trunk.name}
-          bootstrap:
-            vAppConfig:
-              properties:
-                - key: guestinfo.password
-                  value:
-                    from:
-                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
-                      key: lab-password
-                - key: guestinfo.ipaddress
-                  value:
-                    value: ${to_string(variable.esx_settings.servers[count.index].ip)}
-                - key: guestinfo.netmask
-                  value:
-                    value: 255.255.255.0
-                - key: guestinfo.gateway
-                  value:
-                    value: ${to_string(variable.netlayout.mgmt.defaultgw)}
-                - key: guestinfo.hostname
-                  value:
-                    value: ${variable.esx_settings.servers[count.index].name}.${input.domain_name}
-                - key: guestinfo.dns
-                  value:
-                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
-                - key: guestinfo.domain
-                  value:
-                    value: ${to_string(input.domain_name)}
-                - key: guestinfo.ntp
-                  value:
-                    value: ${to_string(variable.vyos_settings.fqdn)}
-                - key: guestinfo.ssh
-                  value:
-                    value: 'true'
-                - key: guestinfo.vlan
-                  value:
-                    value: ${to_string(variable.netlayout.mgmt.vlanid)}
-          wait:
-            conditions:
-              - type: VirtualMachineCreated
-                status: 'True'
-  # --- VCF Installer VM ---
-  Installer_VM:
-    type: CCI.Supervisor.Resource
-    dependsOn:
-      - Subnet_mgmt
-      - SubnetConnectionBindingMap_mgmt
-      - VyOS_Machine
-      - Bootstrap_Secrets
-    metadata:
-      layoutPosition:
-        - 3
-        - 5
-    properties:
-      context: ${resource.Namespace.id}
-      wait:
-        conditions:
-          - type: VirtualMachineCreated
-            status: 'True'
-      manifest:
-        apiVersion: vmoperator.vmware.com/v1alpha3
-        kind: VirtualMachine
-        metadata:
-          name: ${variable.installer_settings.hostname}
-        spec:
-          className: ${variable.installer_settings.vm_class}
-          imageName: ${variable.installer_settings.vm_image}
-          powerState: PoweredOn
-          storageClass: ${variable.namespace_settings.storage.policy}
-          network:
-            interfaces:
-              - addresses:
-                  - ${variable.installer_settings.ip}/32
-                name: eth0
-                network:
-                  name: ${variable.netlayout.mgmt.name}
-                  kind: Subnet
-          bootstrap:
-            vAppConfig:
-              properties:
-                - key: ROOT_PASSWORD
-                  value:
-                    from:
-                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
-                      key: lab-password
-                - key: LOCAL_USER_PASSWORD
-                  value:
-                    from:
-                      name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
-                      key: lab-password
-                - key: vami.hostname
-                  value:
-                    value: ${variable.installer_settings.fqdn}
-                - key: guestinfo.ntp
-                  value:
-                    value: ${to_string(variable.vyos_settings.fqdn)}
-                - key: ip_address_version
-                  value:
-                    value: IPv4
-                - key: ip0
-                  value:
-                    value: ${to_string(variable.installer_settings.ip)}
-                - key: netmask0
-                  value:
-                    value: 255.255.255.0
-                - key: gateway
-                  value:
-                    value: ${to_string(variable.netlayout.mgmt.defaultgw)}
-                - key: domain
-                  value:
-                    value: ${to_string(input.domain_name)}
-                - key: searchpath
-                  value:
-                    value: ${to_string(input.domain_name)}
-                - key: DNS
-                  value:
-                    value: ${to_string(variable.vyos_settings.mgmt_ip)}
-  # --- Windows Jumphost VM ---
-  Jumphost_VM:
-    type: CCI.Supervisor.Resource
-    dependsOn:
-      - Subnet_uplink
-      - SubnetConnectionBindingMap_mgmt
-      - SubnetConnectionBindingMap_vmotion
-      - SubnetConnectionBindingMap_vsan
-      - SubnetConnectionBindingMap_tep
-      - SubnetConnectionBindingMap_vpc
-      - VyOS_Machine
-      - Bootstrap_Secrets
-    metadata:
-      layoutPosition:
-        - 1
-        - 3
-    properties:
-      context: ${resource.Namespace.id}
-      wait:
-        conditions:
-          - type: VirtualMachineCreated
-            status: 'True'
-      manifest:
-        apiVersion: vmoperator.vmware.com/v1alpha5
-        kind: VirtualMachine
-        metadata:
-          name: ${variable.jumphost_settings.hostname}
-        spec:
-          className: ${variable.jumphost_settings.vm_class}
-          imageName: ${variable.jumphost_settings.vm_image}
-          powerState: PoweredOn
-          storageClass: ${variable.namespace_settings.storage.policy}
-          network:
-            hostName: ${variable.jumphost_settings.hostname}
-            nameservers:
-              - ${variable.vyos_settings.mgmt_ip}
-            searchDomains:
-              - ${input.domain_name}
-            interfaces:
-              - name: eth0
-                addresses:
-                  - ${variable.jumphost_settings.ip}/24
-                gateway4: ${variable.netlayout.uplink.defaultgw}
-                network:
-                  apiVersion: crd.nsx.vmware.com/v1alpha1
-                  kind: Subnet
-                  name: ${variable.netlayout.uplink.name}
-          bootstrap:
-            sysprep:
-              sysprep:
-                guiRunOnce:
-                  commands:
-                    - route /p add ${split(variable.netlayout.mgmt.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
-                    - route /p add ${split(variable.netlayout.vmotion.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
-                    - route /p add ${split(variable.netlayout.vsan.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
-                    - route /p add ${split(variable.netlayout.tep.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
-                    - route /p add ${split(variable.netlayout.vpc.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
-                    - route /p add ${split(variable.netlayout.trunk.ipaddresses, '/')[0]} mask 255.255.255.0 ${variable.vyos_settings.mgmt_ip}
-                guiUnattended:
-                  autoLogon: true
-                  autoLogonCount: 1
-                  password:
-                    name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
-                    key: lab-password
-                userData:
-                  fullName: DCLab Admin
-                  orgName: DCLab
-outputs:
-  __deploymentOverview:
-    value: |-
-      ## VCF Lab Environment Overview
-
-      The VMware Cloud Foundation lab resources have been provisioned.
-      The table below summarizes the instances created in the namespace.
-
-      #### Remote Access (RDP to Jumphost)
-      **Public IP:** ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
-      **Port:** 3389
-      **Username:** Administrator
-
-      #### Virtual Machines
-      <table class="table">
-        <tr>
-          <th>Role</th>
-          <th>Hostname</th>
-          <th>IP Address</th>
-          <th>Username</th>
-          <th>Class</th>
-        </tr>
-        <tr>
-          <td><strong>VyOS Router</strong></td>
-          <td>${variable.vyos_settings.hostname}.${input.domain_name}</td>
-          <td>${variable.vyos_settings.mgmt_ip}</td>
-          <td>vyos</td>
-          <td><span class="label label-info">${variable.vyos_settings.vm_class}</span></td>
-        </tr>
-        <tr>
-          <td><strong>Windows Jumphost</strong></td>
-          <td>${variable.jumphost_settings.hostname}.${input.domain_name}</td>
-          <td>${variable.jumphost_settings.ip}</td>
-          <td>Administrator</td>
-          <td><span class="label label-info">${variable.jumphost_settings.vm_class}</span></td>
-        </tr>
-        <tr>
-          <td><strong>VCF Installer</strong></td>
-          <td>${variable.installer_settings.hostname}.${input.domain_name}</td>
-          <td>${variable.installer_settings.ip}</td>
-          <td>root</td>
-          <td><span class="label label-info">${variable.installer_settings.vm_class}</span></td>
-        </tr>
-        %{for host in variable.esx_settings.servers}
-        <tr>
-          <td><strong>ESXi Host</strong></td>
-          <td>${host.name}.${input.domain_name}</td>
-          <td>${host.ip}</td>
-          <td>${variable.esx_settings.credentials.username}</td>
-          <td><span class="label label-info">${variable.esx_settings.vm_class}</span></td>
-        </tr>
-        %{endfor}
-      </table>
-  vcf_deployment_json: 
-    value: ${variable.vcf_deployment_json}
