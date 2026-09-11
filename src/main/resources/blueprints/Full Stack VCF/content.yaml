@@ -1550,4 +1550,5 @@ outputs:
         </tr>
         %{endfor}
       </table>
-  vcf_deployment_json: ${variable.vcf_deployment_json}
+  vcf_deployment_json: 
+    value: ${variable.vcf_deployment_json}
