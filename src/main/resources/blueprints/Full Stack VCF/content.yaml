@@ -28,9 +28,9 @@ inputs:
   fabric_mtu:
     type: integer
     title: Nested Fabric MTU
-    default: 9000
+    default: 8000
     minimum: 1600
-    maximum: 9000
+    maximum: 8000
     description: IP MTU for the nested VyOS trunk, VCF system networks, and distributed switch; the outer NSX transport and physical network need additional encapsulation headroom
   vsan_allow_hcl_incompatible_disks:
     type: boolean
@@ -50,18 +50,20 @@ inputs:
   esx_vsan_disk_size_gib:
     type: integer
     title: Nested vSAN Disk Size (GiB)
-    default: 100
+    default: 400
     minimum: 1
     description: Capacity of the additional NVMe block volume attached to each nested ESXi host
   lab_password:
     type: string
     title: Shared Lab Password
+    default: Password0!Password0!
     encrypted: false
     minLength: 15
     description: Plaintext credential for this disposable lab deployment; visible in the request and generated JSON
   vyos_rest_api_key:
     type: string
     title: VyOS REST API Key
+    default: Password0!Password0!
     encrypted: false
     minLength: 12
     description: Plaintext full-access REST API key for the disposable lab VyOS router
