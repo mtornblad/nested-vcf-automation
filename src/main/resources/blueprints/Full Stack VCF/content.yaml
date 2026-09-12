@@ -89,7 +89,8 @@ variables:
     network: 172.16.0.0/16
     generate_name: ${input.lab_name}-vpc
     attachment_generate_name: ${input.lab_name}-attachment
-    nat_rule_name: ${input.lab_name}-rdp
+    nat_rule_name_jump: ${input.lab_name}-rdp
+    nat_rule_name_installer: ${input.lab_name}-https
     ip_alloc_name: ${input.lab_name}-external-ip
   # --- VyOS Settings ---
   vyos_settings:
@@ -139,7 +140,7 @@ variables:
   # --- Installer Settings ---
   installer_settings:
     vm_image: vmi-0a831a3ed5c05b0a1
-    vm_class: best-effort-xsmall
+    vm_class: best-effort-large
     ip: 172.16.0.10
     hostname: ${input.dns_prefix}vcf-installer
     fqdn: ${input.dns_prefix}vcf-installer.${input.domain_name}
@@ -481,7 +482,7 @@ resources:
       vpc: ${resource.VPC_Main.id}
       kind: VPCNATRule
       configs:
-        - generateName: ${variable.vpc_settings.nat_rule_name}
+        - generateName: ${variable.vpc_settings.nat_rule_name_jump}
           spec:
             action: DNAT
             destinationNetwork: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
@@ -511,7 +512,7 @@ resources:
       vpc: ${resource.VPC_Main.id}
       kind: VPCNATRule
       configs:
-        - generateName: ${variable.vpc_settings.nat_rule_name}
+        - generateName: ${variable.vpc_settings.nat_rule_name_installer}
           spec:
             action: DNAT
             destinationNetwork: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}

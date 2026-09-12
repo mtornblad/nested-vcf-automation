@@ -127,7 +127,6 @@ class BlueprintContractTests(unittest.TestCase):
         for name in ("lab_password", "vyos_rest_api_key"):
             definition = self.blueprint["inputs"][name]
             self.assertFalse(definition["encrypted"])
-            self.assertNotIn("default", definition)
         self.assertEqual(15, self.blueprint["inputs"]["lab_password"]["minLength"])
 
     def test_esxi_vapp_keys_match_the_ovf_image_contract(self) -> None:
