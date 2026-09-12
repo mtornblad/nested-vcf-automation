@@ -28,9 +28,9 @@ inputs:
   fabric_mtu:
     type: integer
     title: Nested Fabric MTU
-    default: 9000
+    default: 8000
     minimum: 1600
-    maximum: 9000
+    maximum: 8000
     description: IP MTU for the nested VyOS trunk, VCF system networks, and distributed switch; the outer NSX transport and physical network need additional encapsulation headroom
   vsan_allow_hcl_incompatible_disks:
     type: boolean
@@ -117,7 +117,7 @@ variables:
       allow_from: ${variable.vpc_settings.network}
   # --- ESXi Settings ---
   esx_settings:
-    vm_image: vmi-ade283728d7174041
+    vm_image: vmi-0a831a3ed5c05b0a1
     vm_class: nested-esx-small
     vsan_disk:
       enabled: ${input.esx_vsan_disk_enabled}
@@ -148,7 +148,7 @@ variables:
   jumphost_settings:
     vm_image: vmi-bb0ae6c186c4d4448
     vm_class: best-effort-medium
-    ip: 172.16.0.4
+    ip: 172.16.1.5
     hostname: ${input.dns_prefix}jump01
     credentials:
       admin_password: ${input.lab_password}
@@ -328,10 +328,10 @@ variables:
       connectivity_state: Disconnected
     uplink:
       name: uplink
-      ipaddresses: 172.16.0.0/24
+#      ipaddresses: 172.16.0.0/24
       defaultgw: 172.16.0.1
       description: VPC Uplink network
-      access_mode: Private
+      access_mode: Public
       connectivity_state: Connected
   # --- Derived IP prefixes and reverse zones ---
   mgmt_oct1: ${split(variable.netlayout.mgmt.ipaddresses, '.')[0]}
@@ -416,6 +416,21 @@ variables:
 
     set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr 2 target ${variable.vyos_settings.fqdn}
     set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr 4 target ${variable.jumphost_settings.hostname}.${input.domain_name}
+
+    set nat destination rule 10 description 'Forward HTTPS to ${variable.installer_settings.hostname}'
+    set nat destination rule 10 destination address ${variable.vyos_settings.mgmt_ip}
+    set nat destination rule 10 destination port 443
+    set nat destination rule 10 inbound-interface __MANAGEMENT_INTERFACE__
+    set nat destination rule 10 protocol tcp
+    set nat destination rule 10 translation address ${variable.installer_settings.ip}
+
+    set nat destination rule 10 description 'Forward HTTPS to ${variable.jumphost_settings.hostname}'
+    set nat destination rule 10 destination address ${variable.vyos_settings.mgmt_ip}
+    set nat destination rule 10 destination port 3389
+    set nat destination rule 10 inbound-interface __MANAGEMENT_INTERFACE__
+    set nat destination rule 10 protocol tcp
+    set nat destination rule 10 translation address ${variable.jumphost_settings.ip}
+
 resources:
   VPC_Main:
     type: CCI.VPC
@@ -446,32 +461,6 @@ resources:
           spec:
             ipAddressBlockVisibility: External
       apiVersion: vpc.nsx.vmware.com/v1alpha1
-  VPC_NAT_Rule_RDP:
-    type: CCI.VPC.Configuration
-    dependsOn:
-      - VPC_IP_Allocation
-    properties:
-      vpc: ${resource.VPC_Main.id}
-      kind: VPCNATRule
-      configs:
-        - generateName: ${variable.vpc_settings.nat_rule_name}
-          spec:
-            action: DNAT
-            destinationNetwork: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
-            enabled: true
-            firewallMatch: MatchInternalAddress
-            logging: false
-            sequenceNumber: 0
-            translatedNetwork: ${variable.jumphost_settings.ip}
-            serviceEntry:
-              destinationPorts: '3389'
-              protocol: TCP
-              translatedPorts: '3389'
-      apiVersion: vpc.nsx.vmware.com/v1alpha1
-      wait:
-        conditions:
-          - type: Realized
-            status: 'True'
   Namespace:
     type: CCI.Supervisor.Namespace
     properties:
@@ -751,6 +740,7 @@ resources:
                   apiVersion: crd.nsx.vmware.com/v1alpha1
                   kind: Subnet
                   name: ${resource.Subnet_uplink.manifest.metadata.name}
+                addresses: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs}
               - name: trunk
                 network:
                   apiVersion: crd.nsx.vmware.com/v1alpha1
