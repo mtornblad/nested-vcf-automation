@@ -417,6 +417,7 @@ variables:
     set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr 2 target ${variable.vyos_settings.fqdn}
     set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr 4 target ${variable.jumphost_settings.hostname}.${input.domain_name}
 
+    # Workaround since this net do not have a default route to NSX
     set nat destination rule 10 description 'Forward HTTPS to ${variable.installer_settings.hostname}'
     set nat destination rule 10 destination address ${variable.vyos_settings.mgmt_ip}
     set nat destination rule 10 destination port 443
@@ -424,12 +425,6 @@ variables:
     set nat destination rule 10 protocol tcp
     set nat destination rule 10 translation address ${variable.installer_settings.ip}
 
-    set nat destination rule 10 description 'Forward HTTPS to ${variable.jumphost_settings.hostname}'
-    set nat destination rule 10 destination address ${variable.vyos_settings.mgmt_ip}
-    set nat destination rule 10 destination port 3389
-    set nat destination rule 10 inbound-interface __MANAGEMENT_INTERFACE__
-    set nat destination rule 10 protocol tcp
-    set nat destination rule 10 translation address ${variable.jumphost_settings.ip}   
 resources:
   VPC_Main:
     type: CCI.VPC
@@ -502,6 +497,37 @@ resources:
         conditions:
           - type: Realized
             status: 'True'
+  VPC_NAT_Rule_Installer:
+    type: CCI.VPC.Configuration
+    dependsOn:
+      - VPC_IP_Allocation
+    metadata:
+      layoutPosition:
+        - 1
+        - 1
+    properties:
+      vpc: ${resource.VPC_Main.id}
+      kind: VPCNATRule
+      configs:
+        - generateName: ${variable.vpc_settings.nat_rule_name}
+          spec:
+            action: DNAT
+            destinationNetwork: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
+            enabled: true
+            firewallMatch: MatchInternalAddress
+            logging: false
+            sequenceNumber: 0
+            translatedNetwork: ${variable.installer_settings.ip}
+            serviceEntry:
+              destinationPorts: '443'
+              protocol: TCP
+              translatedPorts: '443'
+      apiVersion: vpc.nsx.vmware.com/v1alpha1
+      wait:
+        conditions:
+          - type: Realized
+            status: 'True'
+
   Namespace:
     type: CCI.Supervisor.Namespace
     metadata:
