@@ -136,7 +136,7 @@ variables:
         ip: 172.16.1.103
   # --- Installer Settings ---
   installer_settings:
-    vm_image: vmi-992f6225042baf914
+    vm_image: vmi-0a831a3ed5c05b0a1
     vm_class: best-effort-xsmall
     ip: ${variable.net_prefix}.10
     hostname: ${input.dns_prefix}vcf-installer
