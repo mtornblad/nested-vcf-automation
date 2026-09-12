@@ -28,9 +28,9 @@ inputs:
   fabric_mtu:
     type: integer
     title: Nested Fabric MTU
-    default: 8000
+    default: 9000
     minimum: 1600
-    maximum: 8000
+    maximum: 9000
     description: IP MTU for the nested VyOS trunk, VCF system networks, and distributed switch; the outer NSX transport and physical network need additional encapsulation headroom
   vsan_allow_hcl_incompatible_disks:
     type: boolean
@@ -117,7 +117,7 @@ variables:
       allow_from: ${variable.vpc_settings.network}
   # --- ESXi Settings ---
   esx_settings:
-    vm_image: vmi-0a831a3ed5c05b0a1
+    vm_image: vmi-ade283728d7174041
     vm_class: nested-esx-small
     vsan_disk:
       enabled: ${input.esx_vsan_disk_enabled}
@@ -137,7 +137,7 @@ variables:
   # --- Installer Settings ---
   installer_settings:
     vm_image: vmi-992f6225042baf914
-    vm_class: best-effort-large
+    vm_class: best-effort-xsmall
     ip: ${variable.net_prefix}.10
     hostname: ${input.dns_prefix}vcf-installer
     fqdn: ${input.dns_prefix}vcf-installer.${input.domain_name}
@@ -148,7 +148,7 @@ variables:
   jumphost_settings:
     vm_image: vmi-bb0ae6c186c4d4448
     vm_class: best-effort-medium
-    ip: 172.16.1.5
+    ip: 172.16.0.4
     hostname: ${input.dns_prefix}jump01
     credentials:
       admin_password: ${input.lab_password}
@@ -328,10 +328,10 @@ variables:
       connectivity_state: Disconnected
     uplink:
       name: uplink
-#      ipaddresses: 172.16.0.0/24
+      ipaddresses: 172.16.0.0/24
       defaultgw: 172.16.0.1
       description: VPC Uplink network
-      access_mode: Public
+      access_mode: Private
       connectivity_state: Connected
   # --- Derived IP prefixes and reverse zones ---
   mgmt_oct1: ${split(variable.netlayout.mgmt.ipaddresses, '.')[0]}
@@ -429,11 +429,14 @@ variables:
     set nat destination rule 10 destination port 3389
     set nat destination rule 10 inbound-interface __MANAGEMENT_INTERFACE__
     set nat destination rule 10 protocol tcp
-    set nat destination rule 10 translation address ${variable.jumphost_settings.ip}
-
+    set nat destination rule 10 translation address ${variable.jumphost_settings.ip}   
 resources:
   VPC_Main:
     type: CCI.VPC
+    metadata:
+      layoutPosition:
+        - 1
+        - 1
     properties:
       regionName: ${variable.namespace_settings.region_name}
       generateName: ${variable.vpc_settings.generate_name}
@@ -441,6 +444,10 @@ resources:
         - ${variable.vpc_settings.network}
   VPC_Attachment:
     type: CCI.VPC.Configuration
+    metadata:
+      layoutPosition:
+        - 1
+        - 3
     properties:
       vpc: ${resource.VPC_Main.id}
       kind: VPCAttachment
@@ -453,6 +460,10 @@ resources:
     type: CCI.VPC.Configuration
     dependsOn:
       - VPC_Attachment
+    metadata:
+      layoutPosition:
+        - 1
+        - 2
     properties:
       vpc: ${resource.VPC_Main.id}
       kind: VPCIPAddressAllocation
@@ -461,8 +472,42 @@ resources:
           spec:
             ipAddressBlockVisibility: External
       apiVersion: vpc.nsx.vmware.com/v1alpha1
+  VPC_NAT_Rule_RDP:
+    type: CCI.VPC.Configuration
+    dependsOn:
+      - VPC_IP_Allocation
+    metadata:
+      layoutPosition:
+        - 1
+        - 1
+    properties:
+      vpc: ${resource.VPC_Main.id}
+      kind: VPCNATRule
+      configs:
+        - generateName: ${variable.vpc_settings.nat_rule_name}
+          spec:
+            action: DNAT
+            destinationNetwork: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
+            enabled: true
+            firewallMatch: MatchInternalAddress
+            logging: false
+            sequenceNumber: 0
+            translatedNetwork: ${variable.jumphost_settings.ip}
+            serviceEntry:
+              destinationPorts: '3389'
+              protocol: TCP
+              translatedPorts: '3389'
+      apiVersion: vpc.nsx.vmware.com/v1alpha1
+      wait:
+        conditions:
+          - type: Realized
+            status: 'True'
   Namespace:
     type: CCI.Supervisor.Namespace
+    metadata:
+      layoutPosition:
+        - 1
+        - 0
     properties:
       vpcName: ${resource.VPC_Main.name}
       className: ${variable.namespace_settings.class_name}
@@ -482,6 +527,10 @@ resources:
   # --- Management Network ---
   Subnet_mgmt:
     type: CCI.Supervisor.Resource
+    metadata:
+      layoutPosition:
+        - 2
+        - 3
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -504,6 +553,10 @@ resources:
     dependsOn:
       - Subnet_mgmt
       - Subnet_trunk
+    metadata:
+      layoutPosition:
+        - 4
+        - 3
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -518,6 +571,10 @@ resources:
   # --- vMotion Network ---
   Subnet_vmotion:
     type: CCI.Supervisor.Resource
+    metadata:
+      layoutPosition:
+        - 5
+        - 3
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -540,6 +597,10 @@ resources:
     dependsOn:
       - Subnet_vmotion
       - Subnet_trunk
+    metadata:
+      layoutPosition:
+        - 2
+        - 4
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -554,6 +615,10 @@ resources:
   # --- vSAN Network ---
   Subnet_vsan:
     type: CCI.Supervisor.Resource
+    metadata:
+      layoutPosition:
+        - 1
+        - 5
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -576,6 +641,10 @@ resources:
     dependsOn:
       - Subnet_vsan
       - Subnet_trunk
+    metadata:
+      layoutPosition:
+        - 4
+        - 4
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -590,6 +659,10 @@ resources:
   # --- TEP Network ---
   Subnet_tep:
     type: CCI.Supervisor.Resource
+    metadata:
+      layoutPosition:
+        - 5
+        - 5
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -612,6 +685,10 @@ resources:
     dependsOn:
       - Subnet_tep
       - Subnet_trunk
+    metadata:
+      layoutPosition:
+        - 2
+        - 2
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -626,6 +703,10 @@ resources:
   # --- VPC Uplink Network ---
   Subnet_vpc:
     type: CCI.Supervisor.Resource
+    metadata:
+      layoutPosition:
+        - 1
+        - 1
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -648,6 +729,10 @@ resources:
     dependsOn:
       - Subnet_vpc
       - Subnet_trunk
+    metadata:
+      layoutPosition:
+        - 4
+        - 2
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -662,6 +747,10 @@ resources:
   # --- Infrastructure Subnets ---
   Subnet_trunk:
     type: CCI.Supervisor.Resource
+    metadata:
+      layoutPosition:
+        - 3
+        - 3
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -681,6 +770,10 @@ resources:
             mode: DHCPDeactivated
   Subnet_uplink:
     type: CCI.Supervisor.Resource
+    metadata:
+      layoutPosition:
+        - 3
+        - 4
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -703,6 +796,10 @@ resources:
     type: CCI.Supervisor.Resource
     dependsOn:
       - Namespace
+    metadata:
+      layoutPosition:
+        - 0
+        - 0
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -721,6 +818,10 @@ resources:
       - Subnet_uplink
       - Subnet_trunk
       - Bootstrap_Secrets
+    metadata:
+      layoutPosition:
+        - 3
+        - 2
     properties:
       context: ${resource.Namespace.id}
       manifest:
@@ -740,7 +841,6 @@ resources:
                   apiVersion: crd.nsx.vmware.com/v1alpha1
                   kind: Subnet
                   name: ${resource.Subnet_uplink.manifest.metadata.name}
-                addresses: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs}
               - name: trunk
                 network:
                   apiVersion: crd.nsx.vmware.com/v1alpha1
@@ -804,6 +904,10 @@ resources:
     type: CCI.Supervisor.Resource
     dependsOn:
       - Namespace
+    metadata:
+      layoutPosition:
+        - 2
+        - 1
     allocatePerInstance: true
     properties:
       count: '${variable.esx_settings.vsan_disk.enabled == true ? length(variable.esx_settings.servers) : 0}'
@@ -834,6 +938,10 @@ resources:
       - VyOS_Machine
       - Bootstrap_Secrets
       - ESXi_VSAN_Disks
+    metadata:
+      layoutPosition:
+        - 3
+        - 1
     allocatePerInstance: true
     properties:
       count: '${variable.esx_settings.vsan_disk.enabled == true ? length(variable.esx_settings.servers) : 0}'
@@ -924,6 +1032,10 @@ resources:
       - SubnetConnectionBindingMap_vpc
       - VyOS_Machine
       - Bootstrap_Secrets
+    metadata:
+      layoutPosition:
+        - 4
+        - 1
     allocatePerInstance: true
     properties:
       count: '${variable.esx_settings.vsan_disk.enabled == true ? 0 : length(variable.esx_settings.servers)}'
@@ -997,6 +1109,10 @@ resources:
       - SubnetConnectionBindingMap_mgmt
       - VyOS_Machine
       - Bootstrap_Secrets
+    metadata:
+      layoutPosition:
+        - 3
+        - 5
     properties:
       context: ${resource.Namespace.id}
       wait:
@@ -1073,6 +1189,10 @@ resources:
       - SubnetConnectionBindingMap_vpc
       - VyOS_Machine
       - Bootstrap_Secrets
+    metadata:
+      layoutPosition:
+        - 1
+        - 3
     properties:
       context: ${resource.Namespace.id}
       wait:
