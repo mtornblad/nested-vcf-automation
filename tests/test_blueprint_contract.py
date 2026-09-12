@@ -99,7 +99,7 @@ class BlueprintContractTests(unittest.TestCase):
         )
         self.assertEqual("255.255.255.0", properties["netmask0"]["value"])
         self.assertEqual(
-            "${to_string(variable.netlayout.mgmt.defaultgw)}",
+            "${to_string(variable.netlayout.uplink.defaultgw)}",
             properties["gateway"]["value"],
         )
         for key in ("domain", "searchpath"):
