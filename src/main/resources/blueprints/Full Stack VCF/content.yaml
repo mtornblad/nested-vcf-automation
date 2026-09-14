@@ -28,9 +28,9 @@ inputs:
   fabric_mtu:
     type: integer
     title: Nested Fabric MTU
-    default: 8000
+    default: 8800
     minimum: 1600
-    maximum: 8000
+    maximum: 8800
     description: IP MTU for the nested VyOS trunk, VCF system networks, and distributed switch; the outer NSX transport and physical network need additional encapsulation headroom
   vsan_allow_hcl_incompatible_disks:
     type: boolean
@@ -80,9 +80,9 @@ variables:
       limit: 8192Gi
     zone:
       name: domain-c9
-      cpu_limit: 40G
+      cpu_limit: 400G
       cpu_reservation: '0'
-      memory_limit: 40000Mi
+      memory_limit: 500Gi
       memory_reservation: '0'
   # --- VPC Settings ---
   vpc_settings:
@@ -91,6 +91,7 @@ variables:
     attachment_generate_name: ${input.lab_name}-attachment
     nat_rule_name_jump: ${input.lab_name}-rdp
     nat_rule_name_installer: ${input.lab_name}-https
+    nat_rule_name_vyos: ${input.lab_name}-ssh
     ip_alloc_name: ${input.lab_name}-external-ip
   # --- VyOS Settings ---
   vyos_settings:
@@ -137,11 +138,13 @@ variables:
         ip: 172.16.1.102
       - name: ${input.dns_prefix}esx03
         ip: 172.16.1.103
+      - name: ${input.dns_prefix}esx04
+        ip: 172.16.1.104
   # --- Installer Settings ---
   installer_settings:
     vm_image: vmi-992f6225042baf914
-    vm_class: best-effort-large
-    ip: 172.16.0.10
+    vm_class: best-effort-2xlarge
+    ip: 172.16.1.10
     hostname: ${input.dns_prefix}vcf-installer
     fqdn: ${input.dns_prefix}vcf-installer.${input.domain_name}
     credentials:
@@ -427,7 +430,280 @@ variables:
     set nat destination rule 10 inbound-interface __MANAGEMENT_INTERFACE__
     set nat destination rule 10 protocol tcp
     set nat destination rule 10 translation address ${variable.installer_settings.ip}
+  sddcSpec: |-
+      {
+        "version": "9.1.1.0",
+        "vcfInstanceName": "vcf",
+        "sddcId": "mgmt",
+        "workflowType": "VCF",
+        "ceipEnabled": false,
+        "skipEsxThumbprintValidation": true,
+        "dnsSpec": {
+          "subdomain": "${input.domain_name}",
+          "nameservers": [
+            "${variable.vyos_settings.mgmt_ip}"
+          ]
+        },
+        "ntpServers": [
+          "${variable.vyos_settings.fqdn}"
+        ],
+        "hostSpecs": [
+        %{for host in variable.esx_settings.servers}
+          %{if host.name != variable.esx_settings.servers[0].name},%{endif}
+          {
+            "hostname": "${host.name}.${input.domain_name}",
+            "credentials": {
+              "username": "${variable.esx_settings.credentials.username}",
+              "password": "${variable.esx_settings.credentials.password}"
+            }
+          }
+        %{endfor}
+        ],
+        "networkSpecs": [
+          {
+            "networkType": "MANAGEMENT",
+            "ipAddressVersion": "IPv4",
+            "subnet": "${variable.netlayout.mgmt.ipaddresses}",
+            "gateway": "${variable.netlayout.mgmt.defaultgw}",
+            "vlanId": ${variable.netlayout.mgmt.vlanid},
+            "activeUplinks": [
+              "uplink1",
+              "uplink2"
+            ],
+            "portGroupKey": "mgmt-cl01-vds01-pg-esx-mgmt",
+            "standbyUplinks": [],
+            "teamingPolicy": "loadbalance_loadbased"
+          },
+          {
+            "networkType": "VMOTION",
+            "ipAddressVersion": "IPv4",
+            "subnet": "${variable.netlayout.vmotion.ipaddresses}",
+            "gateway": "${variable.netlayout.vmotion.defaultgw}",
+            "vlanId": ${variable.netlayout.vmotion.vlanid},
+            "mtu": ${variable.netlayout.trunk.mtu},
+            "includeIpAddressRanges": [
+              {
+                "startIpAddress": "${variable.netlayout.vmotion.ip_pool.start}",
+                "endIpAddress": "${variable.netlayout.vmotion.ip_pool.end}"
+              }
+            ],
+            "activeUplinks": [
+              "uplink1",
+              "uplink2"
+            ],
+            "portGroupKey": "mgmt-cl01-vds01-pg-vmotion",
+            "standbyUplinks": [],
+            "teamingPolicy": "loadbalance_loadbased"
+          },
+          {
+            "networkType": "VSAN",
+            "ipAddressVersion": "IPv4",
+            "subnet": "${variable.netlayout.vsan.ipaddresses}",
+            "gateway": "${variable.netlayout.vsan.defaultgw}",
+            "vlanId": ${variable.netlayout.vsan.vlanid},
+            "mtu": ${variable.netlayout.trunk.mtu},
+            "includeIpAddressRanges": [
+              {
+                "startIpAddress": "${variable.netlayout.vsan.ip_pool.start}",
+                "endIpAddress": "${variable.netlayout.vsan.ip_pool.end}"
+              }
+            ],
+            "activeUplinks": [
+              "uplink1",
+              "uplink2"
+            ],
+            "portGroupKey": "mgmt-cl01-vds01-pg-vsan",
+            "standbyUplinks": [],
+            "teamingPolicy": "loadbalance_loadbased"
+          }
+        ],
+        "vspClusterSpec": {
+          "ipv4Pool": {
+            "ipRange": {
+              "startIpAddress": "${variable.vcf_settings.vsp.ip_pool.start}",
+              "endIpAddress": "${variable.vcf_settings.vsp.ip_pool.end}"
+            }
+          },
+          "platformFqdn": "${input.dns_prefix}vsp01.${input.domain_name}",
+          "instanceFqdn": "${input.dns_prefix}shared01.${input.domain_name}",
+          "fleetFqdn": "${input.dns_prefix}fleetlcm.${input.domain_name}",
+          "systemUserPassword": "${variable.vcf_settings.vsp.system_user_password}",
+          "size": "small",
+          "name": "vmsp-01",
+          "internalClusterCidrIpv4": "${variable.vcf_settings.vsp.internal_cluster_cidr}"
+        },
+        "nsxtSpec": {
+          "vipFqdn": "${input.dns_prefix}nsx01.${input.domain_name}",
+          "transportVlanId": ${variable.netlayout.tep.vlanid},
+          "ipAddressPoolSpec": {
+            "name": "${variable.netlayout.tep.ip_pool.name}",
+            "description": "${variable.netlayout.tep.ip_pool.description}",
+            "subnets": [
+              {
+                "cidr": "${variable.netlayout.tep.ipaddresses}",
+                "gateway": "${variable.netlayout.tep.defaultgw}",
+                "ipAddressPoolRanges": [
+                  {
+                    "start": "${variable.netlayout.tep.ip_pool.start}",
+                    "end": "${variable.netlayout.tep.ip_pool.end}"
+                  }
+                ]
+              }
+            ]
+          },
+          "nsxtManagerSize": "medium",
+          "nsxtAdminPassword": "${variable.vcf_settings.nsx.admin_password}",
+          "nsxtAuditPassword": "${variable.vcf_settings.nsx.audit_password}",
+          "rootNsxtManagerPassword": "${variable.vcf_settings.nsx.root_password}",
+          "useExistingDeployment": false,
+          "vpcSpec": {
+            "dtgwSpec": {
+              "vlan": ${variable.netlayout.vpc.vlanid},
+              "gatewayCidr": "${variable.netlayout.vpc.defaultgw}/24",
+              "externalIpBlockCidr": "${variable.netlayout.vpc.ipaddresses}",
+              "privateTgwIpBlockCidr": "172.31.0.0/16"
+            }
+          },
+          "nsxtManagers": [
+            {
+              "hostname": "${input.dns_prefix}nsx02.${input.domain_name}"
+            }
+          ]
+        },
+        "vcfOperationsSpec": {
+          "applianceSize": "small",
+          "adminUserPassword": "${variable.vcf_settings.operations.admin_password}",
+          "useExistingDeployment": false,
+          "nodes": [
+            {
+              "hostname": "${input.dns_prefix}ops01.${input.domain_name}",
+              "rootUserPassword": "${variable.vcf_settings.operations.root_password}",
+              "type": "master"
+            }
+          ]
+        },
+        "vcfOperationsCollectorSpec": {
+          "applianceSize": "small",
+          "hostname": "${input.dns_prefix}collector.${input.domain_name}",
+          "rootUserPassword": "${variable.vcf_settings.operations_collector.root_password}",
+          "useExistingDeployment": false
+        },
+        "licenseServerSpec": {
+          "hostname": "${input.dns_prefix}license.${input.domain_name}"
+        },
+        "vidbSpec": {
+          "hostname": "${input.dns_prefix}vidb.${input.domain_name}"
+        },
+        "saltSpec": {},
+        "saltRaasSpec": {},
+        "telemetryAcceptorSpec": {},
+        "fleetLcmSpec": {
+          "hostname": "${input.dns_prefix}fleetlcm.${input.domain_name}"
+        },
+        "sddcLcmSpec": {
+          "hostname": "${input.dns_prefix}shared01.${input.domain_name}"
+        },
+        "fleetDepotSpec": {},
+        "vcenterSpec": {
+          "vcenterHostname": "${input.dns_prefix}vc01.${input.domain_name}",
+          "adminUserSsoPassword": "${variable.vcf_settings.vcenter.admin_sso_password}",
+          "rootVcenterPassword": "${variable.vcf_settings.vcenter.root_password}",
+          "vmSize": "small",
+          "storageSize": "lstorage",
+          "ssoDomain": "vsphere.local",
+          "useExistingDeployment": false
+        },
+        "clusterSpec": {
+          "datacenterName": "mgmt-dc01",
+          "clusterName": "mgmt-cl01"
+        },
+        "datastoreSpec": {
+          "vsanSpec": {
+            "vsanDedup": false,
+            "failuresToTolerate": 1,
+            "esaConfig": {
+              "enabled": true,
+              "skipHclAutoDiskClaim": ${variable.vcf_settings.vsan.allow_hcl_incompatible_disks}
+            },
+            "datastoreName": "mgmt-cl01-ds-vsan01",
+            "encryptionConfig": {
+              "dataInTransitConfig": {
+                "enable": false
+              }
+            }
+          }
+        },
+        "dvsSpecs": [
+          {
+            "dvsName": "mgmt-cl01-vds01",
+            "networks": [
+              "MANAGEMENT",
+              "VMOTION",
+              "VSAN"
+            ],
+            "mtu": ${variable.netlayout.trunk.mtu + 100},
+            "nsxtSwitchConfig": {
+              "transportZones": [
+                {
+                  "name": "overlay-tz-mgmt-nsxt",
+                  "transportType": "OVERLAY"
+                }
+              ]
+            },
+            "vmnicsToUplinks": [
+              {
+                "id": "vmnic0",
+                "uplink": "uplink1"
+              },
+              {
+                "id": "vmnic1",
+                "uplink": "uplink2"
+              }
+            ],
+            "nsxTeamings": [
+              {
+                "policy": "LOADBALANCE_SRCID",
+                "activeUplinks": [
+                  "uplink1",
+                  "uplink2"
+                ],
+                "standByUplinks": null
+              }
+            ],
+            "lagSpecs": null
+          }
+        ],
+        "sddcManagerSpec": {
+          "hostname": "${variable.vcf_settings.sddc_manager.fqdn}",
+          "localUserPassword": "${variable.vcf_settings.sddc_manager.local_user_password}",
+          "rootPassword": "${variable.vcf_settings.sddc_manager.root_password}",
+          "sshPassword": "${variable.vcf_settings.sddc_manager.ssh_password}",
+          "useExistingDeployment": false
+        }%{if input.install_automation == true},
+        "vcfAutomationSpec": {
+          "ipPool": [
+          %{for address in variable.vcf_settings.automation.ip_pool}
+            %{if address != variable.vcf_settings.automation.ip_pool[0]},%{endif}"${address}"
+          %{endfor}
+          ],
+          "hostname": "${input.dns_prefix}auto-vip.${input.domain_name}",
+          "platformFqdn": "${input.dns_prefix}auto-platform.${input.domain_name}",
+          "adminUserPassword": "${variable.vcf_settings.automation.admin_password}",
+          "nodePrefix": "mgmt-node-01",
+          "internalClusterCidr": "${variable.vcf_settings.automation.internal_cluster_cidr}",
+          "useExistingDeployment": false,
+          "size": "small"
+        }%{endif}
+      }
+
+
 resources:
+  Custom_VCFInstallerCertificate_1:
+    type: Custom.VCFInstallerCertificate
+    dependsOn: 
+      - Installer_VM
+    properties:
+      url: https://${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
   VPC_Main:
     type: CCI.VPC
     metadata:
@@ -519,11 +795,42 @@ resources:
             firewallMatch: MatchInternalAddress
             logging: false
             sequenceNumber: 0
-            translatedNetwork: ${variable.installer_settings.ip}
+            translatedNetwork: ${variable.vyos_settings.mgmt_ip}
             serviceEntry:
               destinationPorts: '443'
               protocol: TCP
               translatedPorts: '443'
+      apiVersion: vpc.nsx.vmware.com/v1alpha1
+      wait:
+        conditions:
+          - type: Realized
+            status: 'True'
+
+  VPC_NAT_Rule_Vyos:
+    type: CCI.VPC.Configuration
+    dependsOn:
+      - VPC_IP_Allocation
+    metadata:
+      layoutPosition:
+        - 1
+        - 1
+    properties:
+      vpc: ${resource.VPC_Main.id}
+      kind: VPCNATRule
+      configs:
+        - generateName: ${variable.vpc_settings.nat_rule_name_vyos}
+          spec:
+            action: DNAT
+            destinationNetwork: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
+            enabled: true
+            firewallMatch: MatchInternalAddress
+            logging: false
+            sequenceNumber: 0
+            translatedNetwork: ${variable.vyos_settings.mgmt_ip}
+            serviceEntry:
+              destinationPorts: '22'
+              protocol: TCP
+              translatedPorts: '22'
       apiVersion: vpc.nsx.vmware.com/v1alpha1
       wait:
         conditions:
@@ -988,10 +1295,12 @@ resources:
             nvmeControllers:
               - busNumber: 0
                 sharingMode: None
+              - busNumber: 1
+                sharingMode: None
           volumes:
             - name: vsan-capacity
               controllerType: NVME
-              controllerBusNumber: 0
+              controllerBusNumber: 1
               unitNumber: 0
               diskMode: IndependentPersistent
               sharingMode: None
@@ -1137,6 +1446,7 @@ resources:
       - SubnetConnectionBindingMap_mgmt
       - VyOS_Machine
       - Bootstrap_Secrets
+      - VM_ESXs
     metadata:
       layoutPosition:
         - 3
@@ -1163,7 +1473,7 @@ resources:
                   - ${variable.installer_settings.ip}/32
                 name: eth0
                 network:
-                  name: ${variable.netlayout.uplink.name}
+                  name: ${variable.netlayout.mgmt.name}
                   kind: Subnet
           bootstrap:
             vAppConfig:
@@ -1195,7 +1505,7 @@ resources:
                     value: 255.255.255.0
                 - key: gateway
                   value:
-                    value: ${to_string(variable.netlayout.uplink.defaultgw)}
+                    value: ${to_string(variable.netlayout.mgmt.defaultgw)}
                 - key: domain
                   value:
                     value: ${to_string(input.domain_name)}
@@ -1272,6 +1582,22 @@ resources:
                 userData:
                   fullName: DCLab Admin
                   orgName: DCLab
+
+  Custom_vcf_1:
+    dependsOn: 
+      - Custom_VCFInstallerCertificate_1
+    type: Custom.vcf
+    properties: 
+      baseUrl: https://${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
+      depotUrl: http://172.31.0.27:8081
+      excludeArray: 
+        - vra
+      includeArray: []
+      password: ${input.lab_password}
+      username: admin@local
+      version: 9.1.1.0
+      sddcSpec: ${variable.sddcSpec}
+
 outputs:
   __deploymentOverview:
     value: |-
@@ -1280,10 +1606,24 @@ outputs:
       The VMware Cloud Foundation lab resources have been provisioned.
       The table below summarizes the instances created in the namespace.
 
-      #### Remote Access (RDP to Jumphost)
-      **Public IP:** ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
-      **Port:** 3389
-      **Username:** Administrator
+      #### Remote Access
+      * **RDP (Windows Jumphost):** `${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}:3389` (User: `Administrator`)
+      * **VCF Installer Web UI:** `https://${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}`
+
+      #### SOCKS Proxy via SSH (Webbläsaraccess)
+      För att nå VCF-installern och labbmiljön via Firefox från din lokala maskin:
+
+      1. **Starta SSH-tunneln:**
+         ```bash
+         ssh -D 1080 -N vyos@${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
+         ```
+      2. **Konfigurera Firefox:**
+         * Öppna **Settings** -> Scrolla ner till **Network Settings** och klicka på **Settings...**
+         * Välj **Manual proxy configuration**
+         * Sätt **SOCKS Host:** `127.0.0.1` och **Port:** `1080`
+         * Välj **SOCKS v5**
+         * Bocka för **Proxy DNS when using SOCKS v5** *(viktigt för att interna FQDN som `${variable.installer_settings.hostname}.${input.domain_name}` ska slås upp via VyOS)*
+         * Klicka på **OK**
 
       #### Virtual Machines
       <table class="table">
@@ -1305,6 +1645,7 @@ outputs:
           <td><strong>Windows Jumphost</strong></td>
           <td>${variable.jumphost_settings.hostname}.${input.domain_name}</td>
           <td>${variable.jumphost_settings.ip}</td>
+          <td>${variable.jumphost_settings.ip}</td>
           <td>Administrator</td>
           <td><span class="label label-info">${variable.jumphost_settings.vm_class}</span></td>
         </tr>
@@ -1325,6 +1666,7 @@ outputs:
         </tr>
         %{endfor}
       </table>
+
   vcf_deployment_json:
     value: |-
       {
@@ -1537,7 +1879,7 @@ outputs:
               "VMOTION",
               "VSAN"
             ],
-            "mtu": ${variable.netlayout.trunk.mtu},
+            "mtu": ${variable.netlayout.trunk.mtu + 100},
             "nsxtSwitchConfig": {
               "transportZones": [
                 {
@@ -1591,3 +1933,5 @@ outputs:
           "size": "small"
         }%{endif}
       }
+
+

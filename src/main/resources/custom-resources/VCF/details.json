@@ -1,0 +1,119 @@
+{
+  "id" : "dafc0aa1-990a-4dba-bd58-1e6344d78ebf",
+  "displayName" : "VCF",
+  "description" : "",
+  "resourceType" : "Custom.vcf",
+  "status" : "RELEASED",
+  "orgId" : "d9e5b16e-9fa1-4b9d-80de-ba6f1b552f73",
+  "schemaType" : "VRO_USER_DEFINED",
+  "mainActions" : {
+    "create" : {
+      "id" : "649c1113-0448-4ca8-bdee-2e9791164e50",
+      "name" : "Create VCF",
+      "type" : "vro.workflow",
+      "inputParameters" : [ {
+        "type" : "string",
+        "name" : "baseUrl"
+      }, {
+        "type" : "string",
+        "name" : "username"
+      }, {
+        "type" : "SecureString",
+        "name" : "password"
+      }, {
+        "type" : "string",
+        "name" : "version"
+      }, {
+        "type" : "Array/string",
+        "name" : "excludeArray"
+      }, {
+        "type" : "string",
+        "name" : "depotUrl"
+      }, {
+        "type" : "Array/string",
+        "name" : "includeArray"
+      } ],
+      "outputParameters" : [ {
+        "type" : "string",
+        "name" : "vcf"
+      } ],
+      "endpointLink" : "/resources/endpoints/d7793762-f687-4be6-be67-0f5fb02a4b30"
+    },
+    "read" : {
+      "id" : "a1017dcb-eb20-4a81-b716-95eb8b0af975",
+      "name" : "Read VCF",
+      "type" : "vro.workflow",
+      "inputParameters" : [ {
+        "type" : "string",
+        "name" : "vcfIn"
+      } ],
+      "outputParameters" : [ {
+        "type" : "string",
+        "name" : "vcfOut"
+      } ],
+      "endpointLink" : "/resources/endpoints/d7793762-f687-4be6-be67-0f5fb02a4b30"
+    },
+    "delete" : {
+      "id" : "50e6d525-f5c4-41e7-bd1c-aa6f5ea82571",
+      "name" : "Delete VCF",
+      "type" : "vro.workflow",
+      "inputParameters" : [ {
+        "type" : "string",
+        "name" : "vcf"
+      } ],
+      "endpointLink" : "/resources/endpoints/d7793762-f687-4be6-be67-0f5fb02a4b30"
+    }
+  },
+  "properties" : {
+    "type" : "object",
+    "properties" : {
+      "baseUrl" : {
+        "type" : "string",
+        "title" : "baseUrl"
+      },
+      "username" : {
+        "type" : "string",
+        "title" : "username"
+      },
+      "password" : {
+        "type" : "string",
+        "encrypted" : true,
+        "title" : "password",
+        "writeOnly" : true
+      },
+      "version" : {
+        "type" : "string",
+        "title" : "version"
+      },
+      "excludeArray" : {
+        "type" : "array",
+        "title" : "excludeArray",
+        "items" : {
+          "type" : "string"
+        }
+      },
+      "depotUrl" : {
+        "type" : "string",
+        "title" : "depotUrl"
+      },
+      "includeArray" : {
+        "type" : "array",
+        "title" : "includeArray",
+        "items" : {
+          "type" : "string"
+        }
+      },
+      "sddcSpec" : {
+        "type" : "string",
+        "title" : "sddcSpec"
+      },
+      "vcf" : {
+        "type" : "string",
+        "title" : "vcf",
+        "computed" : true
+      }
+    },
+    "required" : [ ]
+  },
+  "name" : "Custom.vcf"
+}

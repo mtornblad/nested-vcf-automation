@@ -3,7 +3,9 @@
 blueprint:
   - Full Stack VCF
 property-group: []
-custom-resource: []
+custom-resource: 
+  - VCF
+  - VCF Installler Certificate
 resource-action: []
 workflow: []
 subscription: []
