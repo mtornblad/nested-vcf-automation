@@ -1,0 +1,394 @@
+{
+  "layout": {
+    "pages": [
+      {
+        "id": "page_general",
+        "title": "General",
+        "sections": [
+          {
+            "id": "section_lab_name",
+            "fields": [
+              {
+                "id": "lab_name",
+                "display": "textField",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_dns_prefix",
+            "fields": [
+              {
+                "id": "dns_prefix",
+                "display": "textField",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_domain_name",
+            "fields": [
+              {
+                "id": "domain_name",
+                "display": "textField",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_dns_forwarder",
+            "fields": [
+              {
+                "id": "dns_forwarder",
+                "display": "textField",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_ntp_server",
+            "fields": [
+              {
+                "id": "ntp_server",
+                "display": "textField",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_fabric_mtu",
+            "fields": [
+              {
+                "id": "fabric_mtu",
+                "display": "integerField",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_vsan_allow_hcl_incompatible_disks",
+            "fields": [
+              {
+                "id": "vsan_allow_hcl_incompatible_disks",
+                "display": "checkbox",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_install_automation",
+            "fields": [
+              {
+                "id": "install_automation",
+                "display": "checkbox",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_esx_vsan_disk_enabled",
+            "fields": [
+              {
+                "id": "esx_vsan_disk_enabled",
+                "display": "checkbox",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_esx_vsan_disk_size_gib",
+            "fields": [
+              {
+                "id": "esx_vsan_disk_size_gib",
+                "display": "integerField",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_lab_password",
+            "fields": [
+              {
+                "id": "lab_password",
+                "display": "textField",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_vyos_rest_api_key",
+            "fields": [
+              {
+                "id": "vyos_rest_api_key",
+                "display": "textField",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_aefa24a4",
+            "fields": [
+              {
+                "id": "checkbox_2fa22658",
+                "display": "checkbox",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_55fe13da",
+            "fields": [
+              {
+                "id": "checkbox_868b8dc8",
+                "display": "checkbox",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          }
+        ],
+        "state": {}
+      },
+      {
+        "id": "page_e1b9f93a",
+        "title": "Customize Network",
+        "sections": [],
+        "state": {}
+      },
+      {
+        "id": "page_ec540784",
+        "title": "ESXi",
+        "sections": [],
+        "state": {
+          "visible": [
+            {
+              "equals": {
+                "checkbox_868b8dc8": true
+              },
+              "value": true
+            },
+            {
+              "equals": {
+                "checkbox_868b8dc8": false
+              },
+              "value": false
+            }
+          ]
+        }
+      },
+      {
+        "id": "page_d339a51b",
+        "title": "",
+        "sections": [],
+        "state": {}
+      }
+    ]
+  },
+  "schema": {
+    "lab_name": {
+      "label": "Lab Name",
+      "description": "Short DNS-compatible name used as the prefix for generated VPC and namespace names",
+      "signpost": "Short DNS-compatible name used as the prefix for generated VPC and namespace names",
+      "type": {
+        "dataType": "string",
+        "isMultiple": false
+      },
+      "default": "nested-vcf-lab"
+    },
+    "dns_prefix": {
+      "label": "DNS Hostname Prefix",
+      "description": "Prefix added to every generated hostname (for example, \u0027mt\u0027 produces \u0027mtvc01\u0027)",
+      "signpost": "Prefix added to every generated hostname (for example, \u0027mt\u0027 produces \u0027mtvc01\u0027)",
+      "type": {
+        "dataType": "string",
+        "isMultiple": false
+      },
+      "default": "mt"
+    },
+    "domain_name": {
+      "label": "Domain Name",
+      "description": "DNS domain for the nested environment (for example, dclab.se)",
+      "signpost": "DNS domain for the nested environment (for example, dclab.se)",
+      "type": {
+        "dataType": "string",
+        "isMultiple": false
+      },
+      "default": "dclab.se"
+    },
+    "dns_forwarder": {
+      "label": "Upstream DNS Server",
+      "description": "IPv4 address of the upstream resolver used by the VyOS forwarding service",
+      "signpost": "IPv4 address of the upstream resolver used by the VyOS forwarding service",
+      "type": {
+        "dataType": "string",
+        "isMultiple": false
+      },
+      "default": "1.1.1.1"
+    },
+    "ntp_server": {
+      "label": "Upstream NTP Server",
+      "description": "IP address or FQDN of the upstream NTP server used by VyOS",
+      "signpost": "IP address or FQDN of the upstream NTP server used by VyOS",
+      "type": {
+        "dataType": "string",
+        "isMultiple": false
+      },
+      "default": "time1.vyos.net"
+    },
+    "fabric_mtu": {
+      "label": "Nested Fabric MTU",
+      "description": "IP MTU for the nested VyOS trunk, VCF system networks, and distributed switch; the outer NSX transport and physical network need additional encapsulation headroom",
+      "signpost": "IP MTU for the nested VyOS trunk, VCF system networks, and distributed switch; the outer NSX transport and physical network need additional encapsulation headroom",
+      "type": {
+        "dataType": "integer",
+        "isMultiple": false
+      },
+      "default": 8800,
+      "constraints": {
+        "min-value": 1600,
+        "max-value": 8800
+      }
+    },
+    "vsan_allow_hcl_incompatible_disks": {
+      "label": "Allow auto claim of HCL incompatible disks",
+      "description": "Allow vSAN ESA to claim non-HCL disks in the nested lab; maps to skipHclAutoDiskClaim in the VCF specification",
+      "signpost": "Allow vSAN ESA to claim non-HCL disks in the nested lab; maps to skipHclAutoDiskClaim in the VCF specification",
+      "type": {
+        "dataType": "boolean",
+        "isMultiple": false
+      },
+      "default": true
+    },
+    "install_automation": {
+      "label": "Install Aria Automation (Day 2)",
+      "description": "Include VCF Automation in the generated VCF deployment specification",
+      "signpost": "Include VCF Automation in the generated VCF deployment specification",
+      "type": {
+        "dataType": "boolean",
+        "isMultiple": false
+      },
+      "default": false
+    },
+    "esx_vsan_disk_enabled": {
+      "label": "Add Nested vSAN Disk",
+      "description": "Create and attach one additional NVMe block volume to every nested ESXi host",
+      "signpost": "Create and attach one additional NVMe block volume to every nested ESXi host",
+      "type": {
+        "dataType": "boolean",
+        "isMultiple": false
+      },
+      "default": true
+    },
+    "esx_vsan_disk_size_gib": {
+      "label": "Nested vSAN Disk Size (GiB)",
+      "description": "Capacity of the additional NVMe block volume attached to each nested ESXi host",
+      "signpost": "Capacity of the additional NVMe block volume attached to each nested ESXi host",
+      "type": {
+        "dataType": "integer",
+        "isMultiple": false
+      },
+      "default": 400,
+      "constraints": {
+        "min-value": 1
+      }
+    },
+    "lab_password": {
+      "label": "Shared Lab Password",
+      "description": "Plaintext credential for this disposable lab deployment; visible in the request and generated JSON",
+      "signpost": "Plaintext credential for this disposable lab deployment; visible in the request and generated JSON",
+      "type": {
+        "dataType": "string",
+        "isMultiple": false
+      },
+      "default": "Password0!Password0!",
+      "constraints": {
+        "min-value": 15
+      }
+    },
+    "vyos_rest_api_key": {
+      "label": "VyOS REST API Key",
+      "description": "Plaintext full-access REST API key for the disposable lab VyOS router",
+      "signpost": "Plaintext full-access REST API key for the disposable lab VyOS router",
+      "type": {
+        "dataType": "string",
+        "isMultiple": false
+      },
+      "default": "Password0!Password0!",
+      "constraints": {
+        "min-value": 12
+      }
+    },
+    "checkbox_868b8dc8": {
+      "label": "Install ESX Servers",
+      "type": {
+        "dataType": "boolean",
+        "isMultiple": false
+      }
+    },
+    "checkbox_2fa22658": {
+      "label": "Customize Network",
+      "type": {
+        "dataType": "boolean",
+        "isMultiple": false
+      }
+    }
+  },
+  "options": {
+    "externalValidations": []
+  }
+}
