@@ -1,0 +1,11 @@
+{
+  "automation_commit": "b6bca4c",
+  "source_blueprint": "Full Stack VCF",
+  "contract": "nested-vcf.modular/v1",
+  "catalog_names": {
+    "foundation": "Nested VCF Modular - Foundation",
+    "esxi": "Nested VCF Modular - ESXi",
+    "installer": "Nested VCF Modular - Installer",
+    "jumphost": "Nested VCF Modular - Jumphost"
+  }
+}

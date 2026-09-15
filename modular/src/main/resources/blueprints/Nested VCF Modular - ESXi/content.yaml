@@ -1,0 +1,779 @@
+formatVersion: 2
+inputs:
+  lab:
+    type: object
+    properties:
+      schema:
+        type: string
+        enum:
+        - nested-vcf.modular/v1
+      lab_name:
+        type: string
+      dns_prefix:
+        type: string
+      domain_name:
+        type: string
+      namespace_settings:
+        type: object
+        properties:
+          generate_name:
+            type: string
+          region_name:
+            type: string
+          class_name:
+            type: string
+          seg_name:
+            type: string
+          storage:
+            type: object
+            properties:
+              policy:
+                type: string
+              limit:
+                type: string
+            required:
+            - policy
+            - limit
+          zone:
+            type: object
+            properties:
+              name:
+                type: string
+              cpu_limit:
+                type: string
+              cpu_reservation:
+                type: string
+              memory_limit:
+                type: string
+              memory_reservation:
+                type: string
+            required:
+            - name
+            - cpu_limit
+            - cpu_reservation
+            - memory_limit
+            - memory_reservation
+        required:
+        - generate_name
+        - region_name
+        - class_name
+        - seg_name
+        - storage
+        - zone
+      vpc_settings:
+        type: object
+        properties:
+          network:
+            type: string
+          generate_name:
+            type: string
+          attachment_generate_name:
+            type: string
+          nat_rule_name_jump:
+            type: string
+          nat_rule_name_installer:
+            type: string
+          nat_rule_name_vyos:
+            type: string
+          ip_alloc_name:
+            type: string
+        required:
+        - network
+        - generate_name
+        - attachment_generate_name
+        - nat_rule_name_jump
+        - nat_rule_name_installer
+        - nat_rule_name_vyos
+        - ip_alloc_name
+      vyos_settings:
+        type: object
+        properties:
+          vm_image:
+            type: string
+          vm_class:
+            type: string
+          hostname:
+            type: string
+          fqdn:
+            type: string
+          mgmt_ip:
+            type: string
+          mgmt_mask:
+            type: string
+          mgmt_gw:
+            type: string
+          management_network:
+            type: string
+          trunk_network:
+            type: string
+          enable_ssh:
+            type: string
+          enable_rest:
+            type: string
+          dns:
+            type: object
+            properties:
+              local_resolver:
+                type: string
+              forwarder:
+                type: string
+              allow_from:
+                type: string
+              additional_a_records:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    zone:
+                      type: string
+                    name:
+                      type: string
+                    address:
+                      type: string
+                  required:
+                  - zone
+                  - name
+                  - address
+            required:
+            - local_resolver
+            - forwarder
+            - allow_from
+            - additional_a_records
+          ntp:
+            type: object
+            properties:
+              upstream_server:
+                type: string
+              allow_from:
+                type: string
+            required:
+            - upstream_server
+            - allow_from
+        required:
+        - vm_image
+        - vm_class
+        - hostname
+        - fqdn
+        - mgmt_ip
+        - mgmt_mask
+        - mgmt_gw
+        - management_network
+        - trunk_network
+        - enable_ssh
+        - enable_rest
+        - dns
+        - ntp
+      esx_settings:
+        type: object
+        properties:
+          vm_image:
+            type: string
+          vm_class:
+            type: string
+          vsan_disk:
+            type: object
+            properties:
+              enabled:
+                type: boolean
+              size:
+                type: string
+              storage_class:
+                type: string
+              claim_suffix:
+                type: string
+            required:
+            - enabled
+            - size
+            - storage_class
+            - claim_suffix
+          servers:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                ip:
+                  type: string
+              required:
+              - name
+              - ip
+        required:
+        - vm_image
+        - vm_class
+        - vsan_disk
+        - servers
+      installer_settings:
+        type: object
+        properties:
+          vm_image:
+            type: string
+          vm_class:
+            type: string
+          ip:
+            type: string
+          hostname:
+            type: string
+          fqdn:
+            type: string
+        required:
+        - vm_image
+        - vm_class
+        - ip
+        - hostname
+        - fqdn
+      jumphost_settings:
+        type: object
+        properties:
+          vm_image:
+            type: string
+          vm_class:
+            type: string
+          ip:
+            type: string
+          hostname:
+            type: string
+        required:
+        - vm_image
+        - vm_class
+        - ip
+        - hostname
+      vcf_settings:
+        type: object
+        properties:
+          vsan:
+            type: object
+            properties:
+              allow_hcl_incompatible_disks:
+                type: boolean
+            required:
+            - allow_hcl_incompatible_disks
+          vsp:
+            type: object
+            properties:
+              ip_pool:
+                type: object
+                properties:
+                  start:
+                    type: string
+                  end:
+                    type: string
+                required:
+                - start
+                - end
+              internal_cluster_cidr:
+                type: string
+            required:
+            - ip_pool
+            - internal_cluster_cidr
+          nsx:
+            type: object
+            properties: {}
+            required: []
+          operations:
+            type: object
+            properties: {}
+            required: []
+          operations_collector:
+            type: object
+            properties: {}
+            required: []
+          vcenter:
+            type: object
+            properties: {}
+            required: []
+          sddc_manager:
+            type: object
+            properties:
+              hostname:
+                type: string
+              fqdn:
+                type: string
+              ip:
+                type: string
+            required:
+            - hostname
+            - fqdn
+            - ip
+          automation:
+            type: object
+            properties:
+              internal_cluster_cidr:
+                type: string
+              ip_pool:
+                type: array
+                items:
+                  type: string
+            required:
+            - internal_cluster_cidr
+            - ip_pool
+          install_automation:
+            type: boolean
+        required:
+        - vsan
+        - vsp
+        - nsx
+        - operations
+        - operations_collector
+        - vcenter
+        - sddc_manager
+        - automation
+        - install_automation
+      netlayout:
+        type: object
+        properties:
+          mgmt:
+            type: object
+            properties:
+              name:
+                type: string
+              vlanid:
+                type: integer
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+            required:
+            - name
+            - vlanid
+            - ipaddresses
+            - defaultgw
+            - description
+            - access_mode
+            - connectivity_state
+          vmotion:
+            type: object
+            properties:
+              name:
+                type: string
+              vlanid:
+                type: integer
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+              ip_pool:
+                type: object
+                properties:
+                  start:
+                    type: string
+                  end:
+                    type: string
+                required:
+                - start
+                - end
+            required:
+            - name
+            - vlanid
+            - ipaddresses
+            - defaultgw
+            - description
+            - access_mode
+            - connectivity_state
+            - ip_pool
+          vsan:
+            type: object
+            properties:
+              name:
+                type: string
+              vlanid:
+                type: integer
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+              ip_pool:
+                type: object
+                properties:
+                  start:
+                    type: string
+                  end:
+                    type: string
+                required:
+                - start
+                - end
+            required:
+            - name
+            - vlanid
+            - ipaddresses
+            - defaultgw
+            - description
+            - access_mode
+            - connectivity_state
+            - ip_pool
+          tep:
+            type: object
+            properties:
+              name:
+                type: string
+              vlanid:
+                type: integer
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+              ip_pool:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  start:
+                    type: string
+                  end:
+                    type: string
+                required:
+                - name
+                - description
+                - start
+                - end
+            required:
+            - name
+            - vlanid
+            - ipaddresses
+            - defaultgw
+            - description
+            - access_mode
+            - connectivity_state
+            - ip_pool
+          vpc:
+            type: object
+            properties:
+              name:
+                type: string
+              vlanid:
+                type: integer
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+            required:
+            - name
+            - vlanid
+            - ipaddresses
+            - defaultgw
+            - description
+            - access_mode
+            - connectivity_state
+          trunk:
+            type: object
+            properties:
+              name:
+                type: string
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              mtu:
+                type: integer
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+            required:
+            - name
+            - ipaddresses
+            - defaultgw
+            - mtu
+            - description
+            - access_mode
+            - connectivity_state
+          uplink:
+            type: object
+            properties:
+              name:
+                type: string
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+            required:
+            - name
+            - ipaddresses
+            - defaultgw
+            - description
+            - access_mode
+            - connectivity_state
+        required:
+        - mgmt
+        - vmotion
+        - vsan
+        - tep
+        - vpc
+        - trunk
+        - uplink
+    required:
+    - schema
+    - lab_name
+    - dns_prefix
+    - domain_name
+    - namespace_settings
+    - vpc_settings
+    - vyos_settings
+    - esx_settings
+    - installer_settings
+    - jumphost_settings
+    - vcf_settings
+    - netlayout
+    title: Shared modular lab plan
+  lab_password:
+    type: string
+    title: Shared lab password
+    encrypted: false
+    minLength: 15
+  namespace_name:
+    type: string
+    title: Existing foundation namespace
+    minLength: 1
+variables:
+  namespace_settings: ${input.lab.namespace_settings}
+  vpc_settings: ${input.lab.vpc_settings}
+  vyos_settings: ${input.lab.vyos_settings}
+  esx_settings: ${input.lab.esx_settings}
+  installer_settings: ${input.lab.installer_settings}
+  jumphost_settings: ${input.lab.jumphost_settings}
+  vcf_settings: ${input.lab.vcf_settings}
+  netlayout: ${input.lab.netlayout}
+  bootstrap_secret_name: ${input.lab.lab_name}-esxi-bootstrap
+resources:
+  Namespace:
+    type: CCI.Supervisor.Namespace
+    properties:
+      name: ${input.namespace_name}
+      regionName: ${variable.namespace_settings.region_name}
+      existing: true
+  Bootstrap_Secrets:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+    - Namespace
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: ${variable.bootstrap_secret_name}
+        type: Opaque
+        stringData:
+          lab-password: ${input.lab_password}
+  ESXi_VSAN_Disks:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+    - Namespace
+    allocatePerInstance: true
+    properties:
+      count: '${variable.esx_settings.vsan_disk.enabled == true ? length(variable.esx_settings.servers) : 0}'
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: ${variable.esx_settings.servers[count.index].name}-${variable.esx_settings.vsan_disk.claim_suffix}
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          volumeMode: Block
+          storageClassName: ${variable.esx_settings.vsan_disk.storage_class}
+          resources:
+            requests:
+              storage: ${variable.esx_settings.vsan_disk.size}
+  VM_ESXs:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+    - Bootstrap_Secrets
+    - ESXi_VSAN_Disks
+    allocatePerInstance: true
+    properties:
+      count: '${variable.esx_settings.vsan_disk.enabled == true ? length(variable.esx_settings.servers) : 0}'
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: vmoperator.vmware.com/v1alpha5
+        kind: VirtualMachine
+        metadata:
+          name: ${variable.esx_settings.servers[count.index].name}
+        spec:
+          className: ${variable.esx_settings.vm_class}
+          imageName: ${variable.esx_settings.vm_image}
+          powerState: PoweredOn
+          storageClass: ${variable.namespace_settings.storage.policy}
+          hardware:
+            nvmeControllers:
+            - busNumber: 0
+              sharingMode: None
+            - busNumber: 1
+              sharingMode: None
+          volumes:
+          - name: vsan-capacity
+            controllerType: NVME
+            controllerBusNumber: 1
+            unitNumber: 0
+            diskMode: IndependentPersistent
+            sharingMode: None
+            persistentVolumeClaim:
+              claimName: ${variable.esx_settings.servers[count.index].name}-${variable.esx_settings.vsan_disk.claim_suffix}
+          network:
+            interfaces:
+            - name: eth0
+              network:
+                apiVersion: crd.nsx.vmware.com/v1alpha1
+                kind: Subnet
+                name: ${variable.netlayout.trunk.name}
+            - name: eth1
+              network:
+                apiVersion: crd.nsx.vmware.com/v1alpha1
+                kind: Subnet
+                name: ${variable.netlayout.trunk.name}
+          bootstrap:
+            vAppConfig:
+              properties:
+              - key: guestinfo.password
+                value:
+                  from:
+                    name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
+                    key: lab-password
+              - key: guestinfo.ipaddress
+                value:
+                  value: ${to_string(variable.esx_settings.servers[count.index].ip)}
+              - key: guestinfo.netmask
+                value:
+                  value: 255.255.255.0
+              - key: guestinfo.gateway
+                value:
+                  value: ${to_string(variable.netlayout.mgmt.defaultgw)}
+              - key: guestinfo.hostname
+                value:
+                  value: ${variable.esx_settings.servers[count.index].name}.${input.lab.domain_name}
+              - key: guestinfo.dns
+                value:
+                  value: ${to_string(variable.vyos_settings.mgmt_ip)}
+              - key: guestinfo.domain
+                value:
+                  value: ${to_string(input.lab.domain_name)}
+              - key: guestinfo.ntp
+                value:
+                  value: ${to_string(variable.vyos_settings.fqdn)}
+              - key: guestinfo.ssh
+                value:
+                  value: 'true'
+              - key: guestinfo.vlan
+                value:
+                  value: ${to_string(variable.netlayout.mgmt.vlanid)}
+      wait:
+        conditions:
+        - type: VirtualMachineCreated
+          status: 'True'
+  VM_ESXs_Boot_Only:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+    - Bootstrap_Secrets
+    allocatePerInstance: true
+    properties:
+      count: '${variable.esx_settings.vsan_disk.enabled == true ? 0 : length(variable.esx_settings.servers)}'
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: vmoperator.vmware.com/v1alpha5
+        kind: VirtualMachine
+        metadata:
+          name: ${variable.esx_settings.servers[count.index].name}
+        spec:
+          className: ${variable.esx_settings.vm_class}
+          imageName: ${variable.esx_settings.vm_image}
+          powerState: PoweredOn
+          storageClass: ${variable.namespace_settings.storage.policy}
+          network:
+            interfaces:
+            - name: eth0
+              network:
+                apiVersion: crd.nsx.vmware.com/v1alpha1
+                kind: Subnet
+                name: ${variable.netlayout.trunk.name}
+            - name: eth1
+              network:
+                apiVersion: crd.nsx.vmware.com/v1alpha1
+                kind: Subnet
+                name: ${variable.netlayout.trunk.name}
+          bootstrap:
+            vAppConfig:
+              properties:
+              - key: guestinfo.password
+                value:
+                  from:
+                    name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
+                    key: lab-password
+              - key: guestinfo.ipaddress
+                value:
+                  value: ${to_string(variable.esx_settings.servers[count.index].ip)}
+              - key: guestinfo.netmask
+                value:
+                  value: 255.255.255.0
+              - key: guestinfo.gateway
+                value:
+                  value: ${to_string(variable.netlayout.mgmt.defaultgw)}
+              - key: guestinfo.hostname
+                value:
+                  value: ${variable.esx_settings.servers[count.index].name}.${input.lab.domain_name}
+              - key: guestinfo.dns
+                value:
+                  value: ${to_string(variable.vyos_settings.mgmt_ip)}
+              - key: guestinfo.domain
+                value:
+                  value: ${to_string(input.lab.domain_name)}
+              - key: guestinfo.ntp
+                value:
+                  value: ${to_string(variable.vyos_settings.fqdn)}
+              - key: guestinfo.ssh
+                value:
+                  value: 'true'
+              - key: guestinfo.vlan
+                value:
+                  value: ${to_string(variable.netlayout.mgmt.vlanid)}
+      wait:
+        conditions:
+        - type: VirtualMachineCreated
+          status: 'True'
+outputs:
+  contract_version:
+    value: nested-vcf.modular/v1
+  lab_name:
+    value: ${input.lab.lab_name}
+  hosts:
+    value: ${variable.esx_settings.servers}
