@@ -39,7 +39,7 @@ inputs:
     description: Allow vSAN ESA to claim non-HCL disks in the nested lab; maps to skipHclAutoDiskClaim in the VCF specification
   install_automation:
     type: boolean
-    title: Install Aria Automation (Day 2)
+    title: Install Aria Automation
     description: Include VCF Automation in the generated VCF deployment specification
     default: false
   esx_vsan_disk_enabled:
@@ -67,10 +67,12 @@ inputs:
     description: Plaintext full-access REST API key for the disposable lab VyOS router
   checkbox_868b8dc8:
     type: boolean
-    title: Install ESX Servers
-  checkbox_2fa22658:
+    title: Deploy ESX Servers
+    default: true
+  checkbox_117d00ea:
     type: boolean
-    title: Customize Network
+    title: Deploy Installer
+    default: true
 variables:
   bootstrap_secret_name: ${input.lab_name}-bootstrap-${env.shortDeploymentId}
   # --- Namespace & Environment Settings ---

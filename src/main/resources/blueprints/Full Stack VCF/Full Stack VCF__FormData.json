@@ -20,6 +20,69 @@
             ]
           },
           {
+            "id": "section_lab_password",
+            "fields": [
+              {
+                "id": "lab_password",
+                "display": "textField",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_55fe13da",
+            "fields": [
+              {
+                "id": "checkbox_868b8dc8",
+                "display": "checkbox",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_f6abed61",
+            "fields": [
+              {
+                "id": "checkbox_117d00ea",
+                "display": "checkbox",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          },
+          {
+            "id": "section_69d2a7e6",
+            "fields": [
+              {
+                "id": "install_automation",
+                "display": "checkbox",
+                "state": {
+                  "visible": true,
+                  "read-only": false
+                },
+                "signpostPosition": "right-middle"
+              }
+            ]
+          }
+        ],
+        "state": {}
+      },
+      {
+        "id": "page_e1b9f93a",
+        "title": "Customize Network",
+        "sections": [
+          {
             "id": "section_dns_prefix",
             "fields": [
               {
@@ -90,11 +153,11 @@
             ]
           },
           {
-            "id": "section_vsan_allow_hcl_incompatible_disks",
+            "id": "section_vyos_rest_api_key",
             "fields": [
               {
-                "id": "vsan_allow_hcl_incompatible_disks",
-                "display": "checkbox",
+                "id": "vyos_rest_api_key",
+                "display": "textField",
                 "state": {
                   "visible": true,
                   "read-only": false
@@ -102,21 +165,14 @@
                 "signpostPosition": "right-middle"
               }
             ]
-          },
-          {
-            "id": "section_install_automation",
-            "fields": [
-              {
-                "id": "install_automation",
-                "display": "checkbox",
-                "state": {
-                  "visible": true,
-                  "read-only": false
-                },
-                "signpostPosition": "right-middle"
-              }
-            ]
-          },
+          }
+        ],
+        "state": {}
+      },
+      {
+        "id": "page_ec540784",
+        "title": "ESXi",
+        "sections": [
           {
             "id": "section_esx_vsan_disk_enabled",
             "fields": [
@@ -146,52 +202,10 @@
             ]
           },
           {
-            "id": "section_lab_password",
+            "id": "section_vsan_allow_hcl_incompatible_disks",
             "fields": [
               {
-                "id": "lab_password",
-                "display": "textField",
-                "state": {
-                  "visible": true,
-                  "read-only": false
-                },
-                "signpostPosition": "right-middle"
-              }
-            ]
-          },
-          {
-            "id": "section_vyos_rest_api_key",
-            "fields": [
-              {
-                "id": "vyos_rest_api_key",
-                "display": "textField",
-                "state": {
-                  "visible": true,
-                  "read-only": false
-                },
-                "signpostPosition": "right-middle"
-              }
-            ]
-          },
-          {
-            "id": "section_aefa24a4",
-            "fields": [
-              {
-                "id": "checkbox_2fa22658",
-                "display": "checkbox",
-                "state": {
-                  "visible": true,
-                  "read-only": false
-                },
-                "signpostPosition": "right-middle"
-              }
-            ]
-          },
-          {
-            "id": "section_55fe13da",
-            "fields": [
-              {
-                "id": "checkbox_868b8dc8",
+                "id": "vsan_allow_hcl_incompatible_disks",
                 "display": "checkbox",
                 "state": {
                   "visible": true,
@@ -202,18 +216,6 @@
             ]
           }
         ],
-        "state": {}
-      },
-      {
-        "id": "page_e1b9f93a",
-        "title": "Customize Network",
-        "sections": [],
-        "state": {}
-      },
-      {
-        "id": "page_ec540784",
-        "title": "ESXi",
-        "sections": [],
         "state": {
           "visible": [
             {
@@ -233,9 +235,24 @@
       },
       {
         "id": "page_d339a51b",
-        "title": "",
+        "title": "Installer",
         "sections": [],
-        "state": {}
+        "state": {
+          "visible": [
+            {
+              "equals": {
+                "checkbox_117d00ea": true
+              },
+              "value": true
+            },
+            {
+              "equals": {
+                "checkbox_117d00ea": false
+              },
+              "value": false
+            }
+          ]
+        }
       }
     ]
   },
@@ -315,7 +332,7 @@
       "default": true
     },
     "install_automation": {
-      "label": "Install Aria Automation (Day 2)",
+      "label": "Install Aria Automation",
       "description": "Include VCF Automation in the generated VCF deployment specification",
       "signpost": "Include VCF Automation in the generated VCF deployment specification",
       "type": {
@@ -374,18 +391,20 @@
       }
     },
     "checkbox_868b8dc8": {
-      "label": "Install ESX Servers",
+      "label": "Deploy ESX Servers",
       "type": {
         "dataType": "boolean",
         "isMultiple": false
-      }
+      },
+      "default": true
     },
-    "checkbox_2fa22658": {
-      "label": "Customize Network",
+    "checkbox_117d00ea": {
+      "label": "Deploy Installer",
       "type": {
-        "dataType": "boolean",
-        "isMultiple": false
-      }
+        "dataType": "boolean"
+      },
+      "default": true,
+      "constraints": {}
     }
   },
   "options": {
