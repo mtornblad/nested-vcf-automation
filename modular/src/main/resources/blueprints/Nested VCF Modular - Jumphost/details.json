@@ -1,0 +1,6 @@
+{
+  "id": "f2e13d86-be83-5462-b490-507e03f8a1cb",
+  "name": "Nested VCF Modular - Jumphost",
+  "description": "Modular nested VCF: jumphost. Contract nested-vcf.modular/v1.",
+  "requestScopeOrg": true
+}

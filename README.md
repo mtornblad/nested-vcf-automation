@@ -5,6 +5,11 @@ This repository is a VMware Aria Build Tools `vcfa-all-apps` project for the
 `components/vcf-automation` submodule of
 [nested-vcf-lab](https://github.com/mtornblad/nested-vcf-lab).
 
+The [modular variant](modular/README.md) is a separate Maven package in this
+repository. It contains Foundation, ESXi, Installer, and Jumphost blueprints
+for the vRO deployment flow. Run its commands from `modular/` or select
+`--variant modular` through the umbrella adapter.
+
 ## Scope
 
 The blueprint provisions a dedicated VPC and namespace, disconnected VLAN
