@@ -32,6 +32,9 @@
       }, {
         "type" : "Array/string",
         "name" : "includeArray"
+      }, {
+        "type" : "string",
+        "name" : "sddcSpec"
       } ],
       "outputParameters" : [ {
         "type" : "string",

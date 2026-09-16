@@ -142,8 +142,12 @@ python3 ../scripts/validate_vcf_spec.py /path/to/vcf-deployment.json
 The package includes the existing `VCF` and `VCF Installler Certificate`
 custom-resource definitions, with their existing identities. Their referenced
 vRO workflows must already exist and be accessible in the target environment.
-Those legacy workflow implementations are not recreated by the new TypeScript
-package. The definitions are shared with Full Stack VCF; review any changes
+Those workflow implementations are now included as native XML/JavaScript in
+the [Orchestrator package](https://github.com/mtornblad/nested-vcf-orchestrator/blob/main/docs/custom-resources.md).
+Publish that package before uploading the custom-resource definitions. The
+Configurator certificate-delete library workflow remains an external dependency.
+The `Custom.vcf` create descriptor includes `sddcSpec` to match the exported
+Create VCF workflow input. The definitions are shared with Full Stack VCF; review any changes
 to them as changes affecting both variants.
 
 For the first test, leave **Run VCF bring-up** off. A successful VCFA deployment

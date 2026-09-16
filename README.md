@@ -219,6 +219,18 @@ API or the equivalent import step in its UI.
 
 ## Umbrella integration
 
+The existing VCF and certificate custom-resource workflows are versioned in
+the [Orchestrator component](https://github.com/mtornblad/nested-vcf-orchestrator/blob/main/docs/custom-resources.md).
+Publish its package before these definitions. Both Full Stack and modular
+`Custom.vcf` create descriptors include the exported workflow's `sddcSpec`
+string input so that the generated JSON reaches Installer. Validate the
+cross-repository interfaces from the umbrella root with:
+
+```bash
+python3 components/vro-typescript/scripts/validate_native.py \
+  --automation components/vcf-automation
+```
+
 After committing and pushing a component change, advance the parent gitlink:
 
 ```bash
