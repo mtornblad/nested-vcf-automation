@@ -70,9 +70,10 @@ def validate():
     jsonschema.Draft7Validator.check_schema(contract)
     jsonschema.validate(example, contract)
     descriptor = load(ROOT / "content.yaml")
-    if len(descriptor["blueprint"]) != 4:
+    names = [name for name in descriptor["blueprint"] if name.startswith("Nested VCF Modular - ")]
+    if len(names) != 4:
         errors.append("The modular package must select exactly four blueprints")
-    for name in descriptor["blueprint"]:
+    for name in names:
         directory = ROOT / "src/main/resources/blueprints" / name
         blueprint = load(directory / "content.yaml")
         details = json.loads((directory / "details.json").read_text())

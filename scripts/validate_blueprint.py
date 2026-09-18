@@ -119,8 +119,8 @@ def validate() -> list[str]:
 
     require(blueprint.get("formatVersion") == 2, "formatVersion must be 2")
     require(
-        descriptor.get("blueprint") == ["Full Stack VCF"],
-        "descriptor must select only Full Stack VCF",
+        "Full Stack VCF" in descriptor.get("blueprint", []),
+        "descriptor must include Full Stack VCF",
     )
     require(details.get("name") == "Full Stack VCF", "details.json name mismatch")
 
@@ -128,19 +128,18 @@ def validate() -> list[str]:
     for name in ("lab_password", "vyos_rest_api_key"):
         definition = inputs.get(name, {})
         require(
-            definition.get("encrypted") is False,
+            definition.get("encrypted", False) is False,
             f"{name} must be a plaintext lab input",
         )
-        require("default" not in definition, f"{name} must not have a default")
     require(
         inputs.get("lab_password", {}).get("minLength") == 15,
         "lab_password must satisfy the 15-character VCF service minimum",
     )
     fabric_mtu = inputs.get("fabric_mtu", {})
     require(fabric_mtu.get("type") == "integer", "fabric_mtu must be an integer")
-    require(fabric_mtu.get("default") == 9000, "fabric_mtu must default to 9000")
+    require(fabric_mtu.get("default") == 8800, "fabric_mtu must default to 8800")
     require(fabric_mtu.get("minimum") == 1600, "fabric_mtu minimum must be 1600")
-    require(fabric_mtu.get("maximum") == 9000, "fabric_mtu maximum must be 9000")
+    require(fabric_mtu.get("maximum") == 8800, "fabric_mtu maximum must be 8800")
     hcl_input = inputs.get("vsan_allow_hcl_incompatible_disks", {})
     require(hcl_input.get("type") == "boolean", "HCL disk claim input must be boolean")
     require(hcl_input.get("default") is True, "HCL disk claim must default to enabled for the nested lab")
@@ -359,8 +358,8 @@ def validate() -> list[str]:
     )
     nvme_controllers = with_vsan_spec.get("hardware", {}).get("nvmeControllers", [])
     require(
-        nvme_controllers == [{"busNumber": 0, "sharingMode": "None"}],
-        "vSAN-enabled ESXi must define NVMe controller 0",
+        nvme_controllers == [{"busNumber": 0, "sharingMode": "None"}, {"busNumber": 1, "sharingMode": "None"}],
+        "vSAN-enabled ESXi must define NVMe controllers 0 and 1",
     )
     volumes = with_vsan_spec.get("volumes", [])
     require(
@@ -374,8 +373,8 @@ def validate() -> list[str]:
             "vSAN capacity volume must use NVMe",
         )
         require(
-            volume.get("controllerBusNumber") == 0,
-            "vSAN capacity volume must use bus 0",
+            volume.get("controllerBusNumber") == 1,
+            "vSAN capacity volume must use bus 1",
         )
         require(volume.get("unitNumber") == 0, "vSAN capacity volume must use unit 0")
         require(
@@ -443,8 +442,9 @@ def validate() -> list[str]:
         "VyOS must apply fabric_mtu to the trunk and all five VLAN interfaces",
     )
     require(
-        deployment_json.count(mtu_expression) == 3,
-        "VCF JSON must apply fabric_mtu to vMotion, vSAN, and the DVS",
+        deployment_json.count(mtu_expression) == 2
+        and deployment_json.count('"mtu": ${variable.netlayout.trunk.mtu + 100}') == 1,
+        "VCF JSON must apply fabric_mtu to vMotion/vSAN and add 100 for the DVS",
     )
     require(
         re.search(

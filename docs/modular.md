@@ -1,14 +1,14 @@
 # Modular nested VCF blueprints
 
-This is an experimental, separately packaged variant of **Full Stack VCF**.
-VCF Operations Orchestrator collects one lab plan and requests four catalog
-items in order. The existing blueprint remains in the repository root.
+These four catalog items share the ordinary Maven project with **Full Stack VCF**
+and **Full Stack VCF - Capture**. VCF Operations Orchestrator collects one lab
+plan and requests the modular items in order. There is no separate modular project.
 
 The implementation starts from automation commit
 `b6bca4c4dafc935a72f93effda1d2c9b0ebd83f6`. The image IDs, bootstrap key names,
 NVMe controller layout, Windows routes, and DNS configuration follow that
 revision. The source contract is recorded in
-[contracts/source.json](contracts/source.json).
+[contracts/source.json](../contracts/source.json).
 
 ## Ownership and order
 
@@ -31,8 +31,8 @@ can be deselected in the vRO form.
 
 ## Shared request contract
 
-[lab.schema.json](contracts/lab.schema.json) describes `nested-vcf.modular/v1`.
-[lab-plan.example.json](contracts/lab-plan.example.json) contains a complete
+[lab.schema.json](../contracts/lab.schema.json) describes `nested-vcf.modular/v1`.
+[lab-plan.example.json](../contracts/lab-plan.example.json) contains a complete
 public example. The vRO `LabPlan` class generates this object from the form;
 all selected stages receive the same object.
 
@@ -60,28 +60,28 @@ runtime artifacts and must not be added to this repository.
 ## Build, publish and download
 
 Use Java 17, Maven 3.9+, Python 3.11+ and the existing private Maven profile for
-Build Tools 4.25.0. From this `modular/` directory:
+Build Tools 4.25.0. From the repository root:
 
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python3 -m pip install -r requirements.txt
+python3 -m pip install -r requirements-dev.txt
 make test
 make package
 make push PROFILE=lab
 ```
 
 `package` writes the Maven package under `target/`. `push` builds and uploads
-the objects selected in this directory's `content.yaml`. Release the four
+all six blueprints and the shared custom resources selected in `content.yaml`. Release the four
 blueprints and expose them through the intended VCFA All Apps catalog/project.
 Uploading source alone does not establish catalog entitlement.
 
 From the umbrella root, the equivalent entry points are:
 
 ```bash
-./orchestration/run_automation.py test --variant modular
-./orchestration/run_automation.py build --variant modular
-./orchestration/run_automation.py upload --variant modular --profile lab
+./orchestration/run_automation.py test
+./orchestration/run_automation.py build
+./orchestration/run_automation.py upload --profile lab
 ```
 
 To export edits made in Automation, commit or stash component changes, then:
@@ -89,12 +89,12 @@ To export edits made in Automation, commit or stash component changes, then:
 ```bash
 make pull PROFILE=lab
 # Or, from the umbrella root:
-./orchestration/run_automation.py download --variant modular
+./orchestration/run_automation.py download
 ```
 
-Pull selects this variant's content descriptor. It refuses to overwrite a
+Pull uses the combined content descriptor. It refuses to overwrite a
 dirty component unless explicitly forced. Review the diff and run `make test`
-after exporting. These commands do not select the root Full Stack VCF package.
+after exporting. Review changes to all selected blueprints after a pull.
 
 ## Network and guest behavior
 
@@ -136,7 +136,7 @@ generating a second specification. Save the `vcfDeploymentJson` workflow
 output and validate it using the shared validator in the repository root:
 
 ```bash
-python3 ../scripts/validate_vcf_spec.py /path/to/vcf-deployment.json
+python3 scripts/validate_vcf_spec.py /path/to/vcf-deployment.json
 ```
 
 The package includes the existing `VCF` and `VCF Installler Certificate`

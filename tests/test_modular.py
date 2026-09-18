@@ -16,7 +16,7 @@ class ModularContracts(unittest.TestCase):
             role: load(ROOT / "src/main/resources/blueprints" / ("Nested VCF Modular - " + title) / "content.yaml")
             for role, title in [("foundation", "Foundation"), ("esxi", "ESXi"), ("installer", "Installer"), ("jumphost", "Jumphost")]
         }
-        cls.original = load(ROOT.parent / "src/main/resources/blueprints/Full Stack VCF/content.yaml")
+        cls.original = load(ROOT / "src/main/resources/blueprints/Full Stack VCF/content.yaml")
 
     def test_all_sources_validate(self):
         self.assertEqual([], validate())

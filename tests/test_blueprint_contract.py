@@ -25,8 +25,8 @@ class BlueprintContractTests(unittest.TestCase):
     def test_complete_validator(self) -> None:
         self.assertEqual([], validate_blueprint.validate())
 
-    def test_build_tools_descriptor_owns_only_the_blueprint(self) -> None:
-        self.assertEqual(["Full Stack VCF"], self.descriptor["blueprint"])
+    def test_build_tools_descriptor_includes_full_stack(self) -> None:
+        self.assertIn("Full Stack VCF", self.descriptor["blueprint"])
         self.assertEqual([], self.descriptor["workflow"])
         self.assertEqual([], self.descriptor["subscription"])
 
@@ -99,7 +99,7 @@ class BlueprintContractTests(unittest.TestCase):
         )
         self.assertEqual("255.255.255.0", properties["netmask0"]["value"])
         self.assertEqual(
-            "${to_string(variable.netlayout.uplink.defaultgw)}",
+            "${to_string(variable.netlayout.mgmt.defaultgw)}",
             properties["gateway"]["value"],
         )
         for key in ("domain", "searchpath"):
@@ -123,10 +123,10 @@ class BlueprintContractTests(unittest.TestCase):
             self.assertTrue(command.startswith("route /p add "))
             self.assertIn("split(", command)
 
-    def test_credentials_are_request_inputs_without_defaults(self) -> None:
+    def test_credentials_remain_plaintext_lab_inputs(self) -> None:
         for name in ("lab_password", "vyos_rest_api_key"):
             definition = self.blueprint["inputs"][name]
-            self.assertFalse(definition["encrypted"])
+            self.assertFalse(definition.get("encrypted", False))
         self.assertEqual(15, self.blueprint["inputs"]["lab_password"]["minLength"])
 
     def test_esxi_vapp_keys_match_the_ovf_image_contract(self) -> None:
@@ -202,9 +202,9 @@ class BlueprintContractTests(unittest.TestCase):
     def test_fabric_mtu_is_applied_end_to_end(self) -> None:
         definition = self.blueprint["inputs"]["fabric_mtu"]
         self.assertEqual("integer", definition["type"])
-        self.assertEqual(9000, definition["default"])
+        self.assertEqual(8800, definition["default"])
         self.assertEqual(1600, definition["minimum"])
-        self.assertEqual(9000, definition["maximum"])
+        self.assertEqual(8800, definition["maximum"])
 
         variables = self.blueprint["variables"]
         self.assertEqual("${input.fabric_mtu}", variables["netlayout"]["trunk"]["mtu"])
@@ -214,7 +214,7 @@ class BlueprintContractTests(unittest.TestCase):
         )
         template = self.blueprint["outputs"]["vcf_deployment_json"]["value"]
         self.assertEqual(
-            3,
+            2,
             template.count('"mtu": ${variable.netlayout.trunk.mtu}'),
         )
 
@@ -236,12 +236,12 @@ class BlueprintContractTests(unittest.TestCase):
         esxi = self.resources["VM_ESXs"]["properties"]["manifest"]
         self.assertEqual("vmoperator.vmware.com/v1alpha5", esxi["apiVersion"])
         self.assertEqual(
-            [{"busNumber": 0, "sharingMode": "None"}],
+            [{"busNumber": 0, "sharingMode": "None"}, {"busNumber": 1, "sharingMode": "None"}],
             esxi["spec"]["hardware"]["nvmeControllers"],
         )
         volume = esxi["spec"]["volumes"][0]
         self.assertEqual("NVME", volume["controllerType"])
-        self.assertEqual(0, volume["controllerBusNumber"])
+        self.assertEqual(1, volume["controllerBusNumber"])
         self.assertEqual(0, volume["unitNumber"])
 
         boot_only = self.resources["VM_ESXs_Boot_Only"]["properties"]

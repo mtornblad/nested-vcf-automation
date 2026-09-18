@@ -1,11 +1,14 @@
----
-# Empty arrays explicitly exclude all content not owned by this project.
 blueprint:
-  - Full Stack VCF
+- Full Stack VCF
+- Nested VCF Modular - Foundation
+- Nested VCF Modular - ESXi
+- Nested VCF Modular - Installer
+- Nested VCF Modular - Jumphost
+- Full Stack VCF - Capture
 property-group: []
-custom-resource: 
-  - VCF
-  - VCF Installler Certificate
+custom-resource:
+- VCF
+- VCF Installler Certificate
 resource-action: []
 workflow: []
 subscription: []

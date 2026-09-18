@@ -5,10 +5,14 @@ This repository is a VMware Aria Build Tools `vcfa-all-apps` project for the
 `components/vcf-automation` submodule of
 [nested-vcf-lab](https://github.com/mtornblad/nested-vcf-lab).
 
-The [modular variant](modular/README.md) is a separate Maven package in this
-repository. It contains Foundation, ESXi, Installer, and Jumphost blueprints
-for the vRO deployment flow. Run its commands from `modular/` or select
-`--variant modular` through the umbrella adapter.
+All six blueprints now share this Maven project and its `content.yaml`:
+**Full Stack VCF**, the four [modular catalog items](docs/modular.md), and
+[**Full Stack VCF - Capture**](docs/capture.md). Run build, upload and pull
+commands from the repository root. Their existing names and IDs are retained.
+
+Capture deploys configured images into a new namespace/VPC. It inherits guest
+configuration and does not run the installation custom resources. The modular
+items can still be requested individually by the vRO deployment workflow.
 
 ## Scope
 
@@ -24,10 +28,10 @@ Current runtime behavior includes:
 - authoritative forward and reverse DNS records generated in the VyOS
   `config_base64` payload;
 - explicit plaintext request inputs for the disposable lab password and VyOS
-  REST key, with no committed defaults;
+  REST key, retaining the current lab defaults;
 - dynamic ESXi resource count and VCF `hostSpecs` from one server list;
 - an optional, size-controlled NVMe capacity disk per nested ESXi host; and
-- source checks for secret defaults, vApp property contracts, networking, and
+- source checks for credential wiring, vApp property contracts, networking, and
   block-template syntax.
 
 ## Repository layout
