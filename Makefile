@@ -5,6 +5,8 @@ MAVEN ?= mvn
 
 validate:
 	$(PYTHON) scripts/validate_blueprint.py
+	$(PYTHON) scripts/validate_modular.py
+	$(PYTHON) scripts/validate_capture.py
 
 validate-spec:
 	@test -n "$(SPEC)" || { echo "SPEC is required, for example: make validate-spec SPEC=/path/to/vcf-deployment.json" >&2; exit 2; }
@@ -24,6 +26,8 @@ pull:
 	fi
 	$(MAVEN) vcfa-all-apps:pull -P$(PROFILE)
 	$(PYTHON) scripts/validate_blueprint.py
+	$(PYTHON) scripts/validate_modular.py
+	$(PYTHON) scripts/validate_capture.py
 
 download: pull
 

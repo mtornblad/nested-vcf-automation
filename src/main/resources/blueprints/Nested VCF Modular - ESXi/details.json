@@ -1,0 +1,6 @@
+{
+  "id": "28c26adc-21cf-5c16-a15a-9a2d5baa88ad",
+  "name": "Nested VCF Modular - ESXi",
+  "description": "Modular nested VCF: esxi. Contract nested-vcf.modular/v1.",
+  "requestScopeOrg": true
+}

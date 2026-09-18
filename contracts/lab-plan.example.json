@@ -1,0 +1,287 @@
+{
+  "schema": "nested-vcf.modular/v1",
+  "lab_name": "nested-vcf-modular",
+  "dns_prefix": "mt",
+  "domain_name": "dclab.se",
+  "namespace_settings": {
+    "generate_name": "nested-vcf-modular-ns",
+    "region_name": "region-dclab",
+    "class_name": "x-large",
+    "seg_name": "pco",
+    "storage": {
+      "policy": "vsan-default-storage-policy",
+      "limit": "8192Gi"
+    },
+    "zone": {
+      "name": "domain-c9",
+      "cpu_limit": "400G",
+      "cpu_reservation": "0",
+      "memory_limit": "500Gi",
+      "memory_reservation": "0"
+    }
+  },
+  "vpc_settings": {
+    "network": "172.16.0.0/16",
+    "generate_name": "nested-vcf-modular-vpc",
+    "attachment_generate_name": "nested-vcf-modular-attachment",
+    "nat_rule_name_jump": "nested-vcf-modular-rdp",
+    "nat_rule_name_installer": "nested-vcf-modular-https",
+    "nat_rule_name_vyos": "nested-vcf-modular-ssh",
+    "ip_alloc_name": "nested-vcf-modular-external-ip"
+  },
+  "vyos_settings": {
+    "vm_image": "vmi-576b17f7f8892d741",
+    "vm_class": "best-effort-medium",
+    "hostname": "mtvyos01",
+    "fqdn": "mtvyos01.dclab.se",
+    "mgmt_ip": "172.16.0.2",
+    "mgmt_mask": "24",
+    "mgmt_gw": "172.16.0.1",
+    "management_network": "uplink",
+    "trunk_network": "trunk",
+    "enable_ssh": "true",
+    "enable_rest": "true",
+    "dns": {
+      "local_resolver": "127.0.0.1",
+      "forwarder": "1.1.1.1",
+      "allow_from": "172.16.0.0/16",
+      "additional_a_records": [
+        {
+          "zone": "dclab.se",
+          "name": "vis-appliance",
+          "address": "10.114.10.9"
+        }
+      ]
+    },
+    "ntp": {
+      "upstream_server": "time1.vyos.net",
+      "allow_from": "172.16.0.0/16"
+    }
+  },
+  "esx_settings": {
+    "vm_image": "vmi-0a831a3ed5c05b0a1",
+    "vm_class": "nested-esx-small",
+    "servers": [
+      {
+        "name": "mtesx01",
+        "ip": "172.16.1.101"
+      },
+      {
+        "name": "mtesx02",
+        "ip": "172.16.1.102"
+      },
+      {
+        "name": "mtesx03",
+        "ip": "172.16.1.103"
+      },
+      {
+        "name": "mtesx04",
+        "ip": "172.16.1.104"
+      }
+    ],
+    "vsan_disk": {
+      "enabled": true,
+      "size": "400Gi",
+      "storage_class": "vsan-default-storage-policy",
+      "claim_suffix": "vsan-capacity"
+    }
+  },
+  "installer_settings": {
+    "vm_image": "vmi-992f6225042baf914",
+    "vm_class": "best-effort-2xlarge",
+    "ip": "172.16.1.10",
+    "hostname": "mtvcf-installer",
+    "fqdn": "mtvcf-installer.dclab.se"
+  },
+  "jumphost_settings": {
+    "vm_image": "vmi-bb0ae6c186c4d4448",
+    "vm_class": "best-effort-medium",
+    "ip": "172.16.0.4",
+    "hostname": "mtjump01"
+  },
+  "vcf_settings": {
+    "install_automation": false,
+    "vsan": {
+      "allow_hcl_incompatible_disks": true
+    },
+    "vsp": {
+      "ip_pool": {
+        "start": "172.16.1.110",
+        "end": "172.16.1.199"
+      },
+      "internal_cluster_cidr": "240.0.0.0/15"
+    },
+    "nsx": {},
+    "operations": {},
+    "operations_collector": {},
+    "vcenter": {},
+    "sddc_manager": {
+      "hostname": "mtsddcm01",
+      "fqdn": "mtsddcm01.dclab.se",
+      "ip": "172.16.1.207"
+    },
+    "automation": {
+      "internal_cluster_cidr": "198.18.0.0/15",
+      "ip_pool": [
+        "172.16.1.20",
+        "172.16.1.21",
+        "172.16.1.22",
+        "172.16.1.23",
+        "172.16.1.24",
+        "172.16.1.25",
+        "172.16.1.26",
+        "172.16.1.27",
+        "172.16.1.28",
+        "172.16.1.29",
+        "172.16.1.30",
+        "172.16.1.31",
+        "172.16.1.32",
+        "172.16.1.33",
+        "172.16.1.34",
+        "172.16.1.35",
+        "172.16.1.36",
+        "172.16.1.37",
+        "172.16.1.38",
+        "172.16.1.39",
+        "172.16.1.40",
+        "172.16.1.41",
+        "172.16.1.42",
+        "172.16.1.43",
+        "172.16.1.44",
+        "172.16.1.45",
+        "172.16.1.46",
+        "172.16.1.47",
+        "172.16.1.48",
+        "172.16.1.49",
+        "172.16.1.50",
+        "172.16.1.51",
+        "172.16.1.52",
+        "172.16.1.53",
+        "172.16.1.54",
+        "172.16.1.55",
+        "172.16.1.56",
+        "172.16.1.57",
+        "172.16.1.58",
+        "172.16.1.59",
+        "172.16.1.60",
+        "172.16.1.61",
+        "172.16.1.62",
+        "172.16.1.63",
+        "172.16.1.64",
+        "172.16.1.65",
+        "172.16.1.66",
+        "172.16.1.67",
+        "172.16.1.68",
+        "172.16.1.69",
+        "172.16.1.70",
+        "172.16.1.71",
+        "172.16.1.72",
+        "172.16.1.73",
+        "172.16.1.74",
+        "172.16.1.75",
+        "172.16.1.76",
+        "172.16.1.77",
+        "172.16.1.78",
+        "172.16.1.79",
+        "172.16.1.80",
+        "172.16.1.81",
+        "172.16.1.82",
+        "172.16.1.83",
+        "172.16.1.84",
+        "172.16.1.85",
+        "172.16.1.86",
+        "172.16.1.87",
+        "172.16.1.88",
+        "172.16.1.89",
+        "172.16.1.90",
+        "172.16.1.91",
+        "172.16.1.92",
+        "172.16.1.93",
+        "172.16.1.94",
+        "172.16.1.95",
+        "172.16.1.96",
+        "172.16.1.97",
+        "172.16.1.98",
+        "172.16.1.99"
+      ]
+    }
+  },
+  "netlayout": {
+    "mgmt": {
+      "name": "vlan1601",
+      "ipaddresses": "172.16.1.0/24",
+      "defaultgw": "172.16.1.1",
+      "description": "mgmt",
+      "access_mode": "Private",
+      "connectivity_state": "Disconnected",
+      "vlanid": 1601
+    },
+    "vmotion": {
+      "name": "vlan1602",
+      "ipaddresses": "172.16.2.0/24",
+      "defaultgw": "172.16.2.1",
+      "description": "vmotion",
+      "access_mode": "Private",
+      "connectivity_state": "Disconnected",
+      "vlanid": 1602,
+      "ip_pool": {
+        "start": "172.16.2.2",
+        "end": "172.16.2.100"
+      }
+    },
+    "vsan": {
+      "name": "vlan1603",
+      "ipaddresses": "172.16.3.0/24",
+      "defaultgw": "172.16.3.1",
+      "description": "vsan",
+      "access_mode": "Private",
+      "connectivity_state": "Disconnected",
+      "vlanid": 1603,
+      "ip_pool": {
+        "start": "172.16.3.2",
+        "end": "172.16.3.100"
+      }
+    },
+    "tep": {
+      "name": "vlan1604",
+      "ipaddresses": "172.16.4.0/24",
+      "defaultgw": "172.16.4.1",
+      "description": "tep",
+      "access_mode": "Private",
+      "connectivity_state": "Disconnected",
+      "vlanid": 1604,
+      "ip_pool": {
+        "name": "mgmt-cl01-tep01",
+        "description": "ESXi Host Overlay TEP IP Pool",
+        "start": "172.16.4.10",
+        "end": "172.16.4.100"
+      }
+    },
+    "vpc": {
+      "name": "vlan1605",
+      "ipaddresses": "172.16.5.0/24",
+      "defaultgw": "172.16.5.1",
+      "description": "vpc",
+      "access_mode": "Private",
+      "connectivity_state": "Disconnected",
+      "vlanid": 1605
+    },
+    "trunk": {
+      "name": "trunk",
+      "ipaddresses": "172.16.100.0/24",
+      "defaultgw": "172.16.100.1",
+      "description": "trunk",
+      "access_mode": "Private",
+      "connectivity_state": "Disconnected",
+      "mtu": 8800
+    },
+    "uplink": {
+      "name": "uplink",
+      "ipaddresses": "172.16.0.0/24",
+      "defaultgw": "172.16.0.1",
+      "description": "uplink",
+      "access_mode": "Private",
+      "connectivity_state": "Connected"
+    }
+  }
+}

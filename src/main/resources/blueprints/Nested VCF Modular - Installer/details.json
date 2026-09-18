@@ -1,0 +1,6 @@
+{
+  "id": "23e58fcf-e7b8-548c-9eb5-5713c3eef8ad",
+  "name": "Nested VCF Modular - Installer",
+  "description": "Modular nested VCF: installer. Contract nested-vcf.modular/v1.",
+  "requestScopeOrg": true
+}

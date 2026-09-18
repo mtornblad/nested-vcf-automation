@@ -1,0 +1,6 @@
+{
+  "id": "cc32a219-143e-5c8c-bb66-958adc199633",
+  "name": "Full Stack VCF - Capture",
+  "description": "Deploy a captured VCF lab into a new namespace and VPC without guest installation or custom-resource bring-up.",
+  "requestScopeOrg": true
+}

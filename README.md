@@ -5,6 +5,15 @@ This repository is a VMware Aria Build Tools `vcfa-all-apps` project for the
 `components/vcf-automation` submodule of
 [nested-vcf-lab](https://github.com/mtornblad/nested-vcf-lab).
 
+All six blueprints now share this Maven project and its `content.yaml`:
+**Full Stack VCF**, the four [modular catalog items](docs/modular.md), and
+[**Full Stack VCF - Capture**](docs/capture.md). Run build, upload and pull
+commands from the repository root. Their existing names and IDs are retained.
+
+Capture deploys configured images into a new namespace/VPC. It inherits guest
+configuration and does not run the installation custom resources. The modular
+items can still be requested individually by the vRO deployment workflow.
+
 ## Scope
 
 The blueprint provisions a dedicated VPC and namespace, disconnected VLAN
@@ -19,10 +28,10 @@ Current runtime behavior includes:
 - authoritative forward and reverse DNS records generated in the VyOS
   `config_base64` payload;
 - explicit plaintext request inputs for the disposable lab password and VyOS
-  REST key, with no committed defaults;
+  REST key, retaining the current lab defaults;
 - dynamic ESXi resource count and VCF `hostSpecs` from one server list;
 - an optional, size-controlled NVMe capacity disk per nested ESXi host; and
-- source checks for secret defaults, vApp property contracts, networking, and
+- source checks for credential wiring, vApp property contracts, networking, and
   block-template syntax.
 
 ## Repository layout
@@ -213,6 +222,18 @@ flag. The authoritative platform validation is the VCF Installer
 API or the equivalent import step in its UI.
 
 ## Umbrella integration
+
+The existing VCF and certificate custom-resource workflows are versioned in
+the [Orchestrator component](https://github.com/mtornblad/nested-vcf-orchestrator/blob/main/docs/custom-resources.md).
+Publish its package before these definitions. Both Full Stack and modular
+`Custom.vcf` create descriptors include the exported workflow's `sddcSpec`
+string input so that the generated JSON reaches Installer. Validate the
+cross-repository interfaces from the umbrella root with:
+
+```bash
+python3 components/vro-typescript/scripts/validate_native.py \
+  --automation components/vcf-automation
+```
 
 After committing and pushing a component change, advance the parent gitlink:
 

@@ -1,0 +1,34 @@
+{
+  "source": "Inklistrad text(20260917-052817).txt",
+  "sha256": "db0f15e7f1d82083d9e7ed6e306f3fc543eef44b3aa4c47b4839ba728e59467f",
+  "images": [
+    {
+      "name": "mtesx01",
+      "image": "vmi-c6ae4fa03dc1d6bcf"
+    },
+    {
+      "name": "mtesx02",
+      "image": "vmi-35a76cfef06e32f15"
+    },
+    {
+      "name": "mtesx03",
+      "image": "vmi-77bfd8a6ecc8a5990"
+    },
+    {
+      "name": "mtesx04",
+      "image": "vmi-b891f5819d5031403"
+    },
+    {
+      "name": "mtjump01",
+      "image": "vmi-fc88b8589e14087c4"
+    },
+    {
+      "name": "mtvcf-installer",
+      "image": "vmi-33774f3a24d58a384"
+    },
+    {
+      "name": "mtvyos01-41685da4f2",
+      "image": "vmi-c8b12519f897bad54"
+    }
+  ]
+}

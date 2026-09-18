@@ -1,0 +1,1115 @@
+formatVersion: 2
+inputs:
+  lab:
+    type: object
+    properties:
+      schema:
+        type: string
+        enum:
+        - nested-vcf.modular/v1
+      lab_name:
+        type: string
+      dns_prefix:
+        type: string
+      domain_name:
+        type: string
+      namespace_settings:
+        type: object
+        properties:
+          generate_name:
+            type: string
+          region_name:
+            type: string
+          class_name:
+            type: string
+          seg_name:
+            type: string
+          storage:
+            type: object
+            properties:
+              policy:
+                type: string
+              limit:
+                type: string
+            required:
+            - policy
+            - limit
+          zone:
+            type: object
+            properties:
+              name:
+                type: string
+              cpu_limit:
+                type: string
+              cpu_reservation:
+                type: string
+              memory_limit:
+                type: string
+              memory_reservation:
+                type: string
+            required:
+            - name
+            - cpu_limit
+            - cpu_reservation
+            - memory_limit
+            - memory_reservation
+        required:
+        - generate_name
+        - region_name
+        - class_name
+        - seg_name
+        - storage
+        - zone
+      vpc_settings:
+        type: object
+        properties:
+          network:
+            type: string
+          generate_name:
+            type: string
+          attachment_generate_name:
+            type: string
+          nat_rule_name_jump:
+            type: string
+          nat_rule_name_installer:
+            type: string
+          nat_rule_name_vyos:
+            type: string
+          ip_alloc_name:
+            type: string
+        required:
+        - network
+        - generate_name
+        - attachment_generate_name
+        - nat_rule_name_jump
+        - nat_rule_name_installer
+        - nat_rule_name_vyos
+        - ip_alloc_name
+      vyos_settings:
+        type: object
+        properties:
+          vm_image:
+            type: string
+          vm_class:
+            type: string
+          hostname:
+            type: string
+          fqdn:
+            type: string
+          mgmt_ip:
+            type: string
+          mgmt_mask:
+            type: string
+          mgmt_gw:
+            type: string
+          management_network:
+            type: string
+          trunk_network:
+            type: string
+          enable_ssh:
+            type: string
+          enable_rest:
+            type: string
+          dns:
+            type: object
+            properties:
+              local_resolver:
+                type: string
+              forwarder:
+                type: string
+              allow_from:
+                type: string
+              additional_a_records:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    zone:
+                      type: string
+                    name:
+                      type: string
+                    address:
+                      type: string
+                  required:
+                  - zone
+                  - name
+                  - address
+            required:
+            - local_resolver
+            - forwarder
+            - allow_from
+            - additional_a_records
+          ntp:
+            type: object
+            properties:
+              upstream_server:
+                type: string
+              allow_from:
+                type: string
+            required:
+            - upstream_server
+            - allow_from
+        required:
+        - vm_image
+        - vm_class
+        - hostname
+        - fqdn
+        - mgmt_ip
+        - mgmt_mask
+        - mgmt_gw
+        - management_network
+        - trunk_network
+        - enable_ssh
+        - enable_rest
+        - dns
+        - ntp
+      esx_settings:
+        type: object
+        properties:
+          vm_image:
+            type: string
+          vm_class:
+            type: string
+          vsan_disk:
+            type: object
+            properties:
+              enabled:
+                type: boolean
+              size:
+                type: string
+              storage_class:
+                type: string
+              claim_suffix:
+                type: string
+            required:
+            - enabled
+            - size
+            - storage_class
+            - claim_suffix
+          servers:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                ip:
+                  type: string
+              required:
+              - name
+              - ip
+        required:
+        - vm_image
+        - vm_class
+        - vsan_disk
+        - servers
+      installer_settings:
+        type: object
+        properties:
+          vm_image:
+            type: string
+          vm_class:
+            type: string
+          ip:
+            type: string
+          hostname:
+            type: string
+          fqdn:
+            type: string
+        required:
+        - vm_image
+        - vm_class
+        - ip
+        - hostname
+        - fqdn
+      jumphost_settings:
+        type: object
+        properties:
+          vm_image:
+            type: string
+          vm_class:
+            type: string
+          ip:
+            type: string
+          hostname:
+            type: string
+        required:
+        - vm_image
+        - vm_class
+        - ip
+        - hostname
+      vcf_settings:
+        type: object
+        properties:
+          vsan:
+            type: object
+            properties:
+              allow_hcl_incompatible_disks:
+                type: boolean
+            required:
+            - allow_hcl_incompatible_disks
+          vsp:
+            type: object
+            properties:
+              ip_pool:
+                type: object
+                properties:
+                  start:
+                    type: string
+                  end:
+                    type: string
+                required:
+                - start
+                - end
+              internal_cluster_cidr:
+                type: string
+            required:
+            - ip_pool
+            - internal_cluster_cidr
+          nsx:
+            type: object
+            properties: {}
+            required: []
+          operations:
+            type: object
+            properties: {}
+            required: []
+          operations_collector:
+            type: object
+            properties: {}
+            required: []
+          vcenter:
+            type: object
+            properties: {}
+            required: []
+          sddc_manager:
+            type: object
+            properties:
+              hostname:
+                type: string
+              fqdn:
+                type: string
+              ip:
+                type: string
+            required:
+            - hostname
+            - fqdn
+            - ip
+          automation:
+            type: object
+            properties:
+              internal_cluster_cidr:
+                type: string
+              ip_pool:
+                type: array
+                items:
+                  type: string
+            required:
+            - internal_cluster_cidr
+            - ip_pool
+          install_automation:
+            type: boolean
+        required:
+        - vsan
+        - vsp
+        - nsx
+        - operations
+        - operations_collector
+        - vcenter
+        - sddc_manager
+        - automation
+        - install_automation
+      netlayout:
+        type: object
+        properties:
+          mgmt:
+            type: object
+            properties:
+              name:
+                type: string
+              vlanid:
+                type: integer
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+            required:
+            - name
+            - vlanid
+            - ipaddresses
+            - defaultgw
+            - description
+            - access_mode
+            - connectivity_state
+          vmotion:
+            type: object
+            properties:
+              name:
+                type: string
+              vlanid:
+                type: integer
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+              ip_pool:
+                type: object
+                properties:
+                  start:
+                    type: string
+                  end:
+                    type: string
+                required:
+                - start
+                - end
+            required:
+            - name
+            - vlanid
+            - ipaddresses
+            - defaultgw
+            - description
+            - access_mode
+            - connectivity_state
+            - ip_pool
+          vsan:
+            type: object
+            properties:
+              name:
+                type: string
+              vlanid:
+                type: integer
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+              ip_pool:
+                type: object
+                properties:
+                  start:
+                    type: string
+                  end:
+                    type: string
+                required:
+                - start
+                - end
+            required:
+            - name
+            - vlanid
+            - ipaddresses
+            - defaultgw
+            - description
+            - access_mode
+            - connectivity_state
+            - ip_pool
+          tep:
+            type: object
+            properties:
+              name:
+                type: string
+              vlanid:
+                type: integer
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+              ip_pool:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  start:
+                    type: string
+                  end:
+                    type: string
+                required:
+                - name
+                - description
+                - start
+                - end
+            required:
+            - name
+            - vlanid
+            - ipaddresses
+            - defaultgw
+            - description
+            - access_mode
+            - connectivity_state
+            - ip_pool
+          vpc:
+            type: object
+            properties:
+              name:
+                type: string
+              vlanid:
+                type: integer
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+            required:
+            - name
+            - vlanid
+            - ipaddresses
+            - defaultgw
+            - description
+            - access_mode
+            - connectivity_state
+          trunk:
+            type: object
+            properties:
+              name:
+                type: string
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              mtu:
+                type: integer
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+            required:
+            - name
+            - ipaddresses
+            - defaultgw
+            - mtu
+            - description
+            - access_mode
+            - connectivity_state
+          uplink:
+            type: object
+            properties:
+              name:
+                type: string
+              ipaddresses:
+                type: string
+              defaultgw:
+                type: string
+              description:
+                type: string
+              access_mode:
+                type: string
+              connectivity_state:
+                type: string
+            required:
+            - name
+            - ipaddresses
+            - defaultgw
+            - description
+            - access_mode
+            - connectivity_state
+        required:
+        - mgmt
+        - vmotion
+        - vsan
+        - tep
+        - vpc
+        - trunk
+        - uplink
+    required:
+    - schema
+    - lab_name
+    - dns_prefix
+    - domain_name
+    - namespace_settings
+    - vpc_settings
+    - vyos_settings
+    - esx_settings
+    - installer_settings
+    - jumphost_settings
+    - vcf_settings
+    - netlayout
+    title: Shared modular lab plan
+  lab_password:
+    type: string
+    title: Shared lab password
+    encrypted: false
+    minLength: 15
+  vyos_rest_api_key:
+    type: string
+    title: VyOS REST API key
+    encrypted: false
+    minLength: 12
+variables:
+  namespace_settings: ${input.lab.namespace_settings}
+  vpc_settings: ${input.lab.vpc_settings}
+  vyos_settings: ${input.lab.vyos_settings}
+  esx_settings: ${input.lab.esx_settings}
+  installer_settings: ${input.lab.installer_settings}
+  jumphost_settings: ${input.lab.jumphost_settings}
+  vcf_settings: ${input.lab.vcf_settings}
+  netlayout: ${input.lab.netlayout}
+  bootstrap_secret_name: ${input.lab.lab_name}-foundation-bootstrap
+  mgmt_oct1: ${split(variable.netlayout.mgmt.ipaddresses, '.')[0]}
+  mgmt_oct2: ${split(variable.netlayout.mgmt.ipaddresses, '.')[1]}
+  mgmt_oct3: ${split(variable.netlayout.mgmt.ipaddresses, '.')[2]}
+  uplink_oct1: ${split(variable.netlayout.uplink.ipaddresses, '.')[0]}
+  uplink_oct2: ${split(variable.netlayout.uplink.ipaddresses, '.')[1]}
+  uplink_oct3: ${split(variable.netlayout.uplink.ipaddresses, '.')[2]}
+  net_prefix: ${variable.mgmt_oct1}.${variable.mgmt_oct2}.${variable.mgmt_oct3}
+  rev_zone_mgmt: ${variable.mgmt_oct3}.${variable.mgmt_oct2}.${variable.mgmt_oct1}.in-addr.arpa
+  rev_zone_uplink: ${variable.uplink_oct3}.${variable.uplink_oct2}.${variable.uplink_oct1}.in-addr.arpa
+  vyos_config: |
+    set interfaces ethernet __TRUNK_INTERFACE__ address ${variable.netlayout.trunk.defaultgw}/24
+    set interfaces ethernet __TRUNK_INTERFACE__ mtu ${variable.netlayout.trunk.mtu}
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.mgmt.vlanid} address ${variable.netlayout.mgmt.defaultgw}/24
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.mgmt.vlanid} mtu ${variable.netlayout.trunk.mtu}
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.vmotion.vlanid} address ${variable.netlayout.vmotion.defaultgw}/24
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.vmotion.vlanid} mtu ${variable.netlayout.trunk.mtu}
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.vsan.vlanid} address ${variable.netlayout.vsan.defaultgw}/24
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.vsan.vlanid} mtu ${variable.netlayout.trunk.mtu}
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.tep.vlanid} address ${variable.netlayout.tep.defaultgw}/24
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.tep.vlanid} mtu ${variable.netlayout.trunk.mtu}
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.vpc.vlanid} address ${variable.netlayout.vpc.defaultgw}/24
+    set interfaces ethernet __TRUNK_INTERFACE__ vif ${variable.netlayout.vpc.vlanid} mtu ${variable.netlayout.trunk.mtu}
+    set nat source rule 100 outbound-interface name __MANAGEMENT_INTERFACE__
+    set nat source rule 100 translation address masquerade
+
+    set service dns forwarding listen-address ${variable.vyos_settings.dns.local_resolver}
+    set service dns forwarding listen-address ${variable.vyos_settings.mgmt_ip}
+    set service dns forwarding allow-from 127.0.0.0/8
+    set service dns forwarding allow-from ${variable.vyos_settings.dns.allow_from}
+    set service dns forwarding name-server ${variable.vyos_settings.dns.forwarder}
+    set service dns forwarding ignore-hosts-file
+
+    set service ntp listen-address ${variable.vyos_settings.mgmt_ip}
+    set service ntp allow-client address ${variable.vyos_settings.ntp.allow_from}
+
+    # --- Generated DNS A records ---
+    %{for record in variable.vyos_settings.dns.additional_a_records}
+    set service dns forwarding authoritative-domain ${record.zone} records a ${record.name} address ${record.address}
+    %{endfor}
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${variable.vyos_settings.hostname} address ${variable.vyos_settings.mgmt_ip}
+    %{for host in variable.esx_settings.servers}
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${host.name} address ${host.ip}
+    %{endfor}
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${input.lab.dns_prefix}vc01 address ${variable.net_prefix}.200
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${input.lab.dns_prefix}nsx01 address ${variable.net_prefix}.201
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${input.lab.dns_prefix}nsx02 address ${variable.net_prefix}.202
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${input.lab.dns_prefix}ops01 address ${variable.net_prefix}.203
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${input.lab.dns_prefix}collector address ${variable.net_prefix}.204
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${input.lab.dns_prefix}auto-vip address ${variable.net_prefix}.205
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${input.lab.dns_prefix}auto-platform address ${variable.net_prefix}.206
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${input.lab.dns_prefix}vsp01 address ${variable.net_prefix}.208
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${input.lab.dns_prefix}fleetlcm address ${variable.net_prefix}.209
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${input.lab.dns_prefix}shared01 address ${variable.net_prefix}.210
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${input.lab.dns_prefix}vidb address ${variable.net_prefix}.211
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${input.lab.dns_prefix}license address ${variable.net_prefix}.212
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${variable.installer_settings.hostname} address ${variable.installer_settings.ip}
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${variable.vcf_settings.sddc_manager.hostname} address ${variable.vcf_settings.sddc_manager.ip}
+    set service dns forwarding authoritative-domain ${input.lab.domain_name} records a ${variable.jumphost_settings.hostname} address ${variable.jumphost_settings.ip}
+
+    # --- Generated DNS PTR records ---
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr ${split(variable.installer_settings.ip, '.')[3]} target ${variable.installer_settings.fqdn}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr ${split(variable.vcf_settings.sddc_manager.ip, '.')[3]} target ${variable.vcf_settings.sddc_manager.fqdn}
+    %{for host in variable.esx_settings.servers}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr ${split(host.ip, '.')[3]} target ${host.name}.${input.lab.domain_name}
+    %{endfor}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 200 target ${input.lab.dns_prefix}vc01.${input.lab.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 201 target ${input.lab.dns_prefix}nsx01.${input.lab.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 202 target ${input.lab.dns_prefix}nsx02.${input.lab.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 203 target ${input.lab.dns_prefix}ops01.${input.lab.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 204 target ${input.lab.dns_prefix}collector.${input.lab.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 205 target ${input.lab.dns_prefix}auto-vip.${input.lab.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 206 target ${input.lab.dns_prefix}auto-platform.${input.lab.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 208 target ${input.lab.dns_prefix}vsp01.${input.lab.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 209 target ${input.lab.dns_prefix}fleetlcm.${input.lab.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 210 target ${input.lab.dns_prefix}shared01.${input.lab.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 211 target ${input.lab.dns_prefix}vidb.${input.lab.domain_name}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_mgmt} records ptr 212 target ${input.lab.dns_prefix}license.${input.lab.domain_name}
+
+    set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr 2 target ${variable.vyos_settings.fqdn}
+    set service dns forwarding authoritative-domain ${variable.rev_zone_uplink} records ptr ${split(variable.jumphost_settings.ip, '.')[3]} target ${variable.jumphost_settings.hostname}.${input.lab.domain_name}
+
+    # Workaround since this net do not have a default route to NSX
+    set nat destination rule 10 description 'Forward HTTPS to ${variable.installer_settings.hostname}'
+    set nat destination rule 10 destination address ${variable.vyos_settings.mgmt_ip}
+    set nat destination rule 10 destination port 443
+    set nat destination rule 10 inbound-interface __MANAGEMENT_INTERFACE__
+    set nat destination rule 10 protocol tcp
+    set nat destination rule 10 translation address ${variable.installer_settings.ip}
+resources:
+  VPC_Main:
+    type: CCI.VPC
+    properties:
+      regionName: ${variable.namespace_settings.region_name}
+      generateName: ${variable.vpc_settings.generate_name}
+      privateIPs:
+      - ${variable.vpc_settings.network}
+  VPC_Attachment:
+    type: CCI.VPC.Configuration
+    properties:
+      vpc: ${resource.VPC_Main.id}
+      kind: VPCAttachment
+      configs:
+      - generateName: ${variable.vpc_settings.attachment_generate_name}
+        spec:
+          vpcConnectivityProfileName: default--${variable.namespace_settings.region_name}
+      apiVersion: vpc.nsx.vmware.com/v1alpha1
+  VPC_IP_Allocation:
+    type: CCI.VPC.Configuration
+    dependsOn:
+    - VPC_Attachment
+    properties:
+      vpc: ${resource.VPC_Main.id}
+      kind: VPCIPAddressAllocation
+      configs:
+      - generateName: ${variable.vpc_settings.ip_alloc_name}
+        spec:
+          ipAddressBlockVisibility: External
+      apiVersion: vpc.nsx.vmware.com/v1alpha1
+  VPC_NAT_Rule_RDP:
+    type: CCI.VPC.Configuration
+    dependsOn:
+    - VPC_IP_Allocation
+    properties:
+      vpc: ${resource.VPC_Main.id}
+      kind: VPCNATRule
+      configs:
+      - generateName: ${variable.vpc_settings.nat_rule_name_jump}
+        spec:
+          action: DNAT
+          destinationNetwork: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
+          enabled: true
+          firewallMatch: MatchInternalAddress
+          logging: false
+          sequenceNumber: 0
+          translatedNetwork: ${variable.jumphost_settings.ip}
+          serviceEntry:
+            destinationPorts: '3389'
+            protocol: TCP
+            translatedPorts: '3389'
+      apiVersion: vpc.nsx.vmware.com/v1alpha1
+      wait:
+        conditions:
+        - type: Realized
+          status: 'True'
+  VPC_NAT_Rule_Installer:
+    type: CCI.VPC.Configuration
+    dependsOn:
+    - VPC_IP_Allocation
+    properties:
+      vpc: ${resource.VPC_Main.id}
+      kind: VPCNATRule
+      configs:
+      - generateName: ${variable.vpc_settings.nat_rule_name_installer}
+        spec:
+          action: DNAT
+          destinationNetwork: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
+          enabled: true
+          firewallMatch: MatchInternalAddress
+          logging: false
+          sequenceNumber: 0
+          translatedNetwork: ${variable.vyos_settings.mgmt_ip}
+          serviceEntry:
+            destinationPorts: '443'
+            protocol: TCP
+            translatedPorts: '443'
+      apiVersion: vpc.nsx.vmware.com/v1alpha1
+      wait:
+        conditions:
+        - type: Realized
+          status: 'True'
+  VPC_NAT_Rule_Vyos:
+    type: CCI.VPC.Configuration
+    dependsOn:
+    - VPC_IP_Allocation
+    properties:
+      vpc: ${resource.VPC_Main.id}
+      kind: VPCNATRule
+      configs:
+      - generateName: ${variable.vpc_settings.nat_rule_name_vyos}
+        spec:
+          action: DNAT
+          destinationNetwork: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
+          enabled: true
+          firewallMatch: MatchInternalAddress
+          logging: false
+          sequenceNumber: 0
+          translatedNetwork: ${variable.vyos_settings.mgmt_ip}
+          serviceEntry:
+            destinationPorts: '22'
+            protocol: TCP
+            translatedPorts: '22'
+      apiVersion: vpc.nsx.vmware.com/v1alpha1
+      wait:
+        conditions:
+        - type: Realized
+          status: 'True'
+  Namespace:
+    type: CCI.Supervisor.Namespace
+    properties:
+      vpcName: ${resource.VPC_Main.name}
+      className: ${variable.namespace_settings.class_name}
+      regionName: ${variable.namespace_settings.region_name}
+      generateName: ${variable.namespace_settings.generate_name}
+      existing: false
+      segName: ${variable.namespace_settings.seg_name}
+      storageClasses:
+      - name: ${variable.namespace_settings.storage.policy}
+        limit: ${to_string(variable.namespace_settings.storage.limit)}
+      zones:
+      - name: ${variable.namespace_settings.zone.name}
+        cpuLimit: ${to_string(variable.namespace_settings.zone.cpu_limit)}
+        cpuReservation: ${to_string(variable.namespace_settings.zone.cpu_reservation)}
+        memoryLimit: ${to_string(variable.namespace_settings.zone.memory_limit)}
+        memoryReservation: ${to_string(variable.namespace_settings.zone.memory_reservation)}
+  Subnet_mgmt:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.mgmt.name}
+        spec:
+          accessMode: ${variable.netlayout.mgmt.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.mgmt.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+          - ${variable.netlayout.mgmt.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  SubnetConnectionBindingMap_mgmt:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+    - Subnet_mgmt
+    - Subnet_trunk
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: SubnetConnectionBindingMap
+        metadata:
+          name: binding-${variable.netlayout.mgmt.name}
+        spec:
+          subnetName: ${variable.netlayout.mgmt.name}
+          targetSubnetName: ${variable.netlayout.trunk.name}
+          vlanTrafficTag: ${variable.netlayout.mgmt.vlanid}
+  Subnet_vmotion:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.vmotion.name}
+        spec:
+          accessMode: ${variable.netlayout.vmotion.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.vmotion.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+          - ${variable.netlayout.vmotion.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  SubnetConnectionBindingMap_vmotion:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+    - Subnet_vmotion
+    - Subnet_trunk
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: SubnetConnectionBindingMap
+        metadata:
+          name: binding-${variable.netlayout.vmotion.name}
+        spec:
+          subnetName: ${variable.netlayout.vmotion.name}
+          targetSubnetName: ${variable.netlayout.trunk.name}
+          vlanTrafficTag: ${variable.netlayout.vmotion.vlanid}
+  Subnet_vsan:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.vsan.name}
+        spec:
+          accessMode: ${variable.netlayout.vsan.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.vsan.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+          - ${variable.netlayout.vsan.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  SubnetConnectionBindingMap_vsan:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+    - Subnet_vsan
+    - Subnet_trunk
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: SubnetConnectionBindingMap
+        metadata:
+          name: binding-${variable.netlayout.vsan.name}
+        spec:
+          subnetName: ${variable.netlayout.vsan.name}
+          targetSubnetName: ${variable.netlayout.trunk.name}
+          vlanTrafficTag: ${variable.netlayout.vsan.vlanid}
+  Subnet_tep:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.tep.name}
+        spec:
+          accessMode: ${variable.netlayout.tep.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.tep.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+          - ${variable.netlayout.tep.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  SubnetConnectionBindingMap_tep:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+    - Subnet_tep
+    - Subnet_trunk
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: SubnetConnectionBindingMap
+        metadata:
+          name: binding-${variable.netlayout.tep.name}
+        spec:
+          subnetName: ${variable.netlayout.tep.name}
+          targetSubnetName: ${variable.netlayout.trunk.name}
+          vlanTrafficTag: ${variable.netlayout.tep.vlanid}
+  Subnet_vpc:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.vpc.name}
+        spec:
+          accessMode: ${variable.netlayout.vpc.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.vpc.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+          - ${variable.netlayout.vpc.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  SubnetConnectionBindingMap_vpc:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+    - Subnet_vpc
+    - Subnet_trunk
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: SubnetConnectionBindingMap
+        metadata:
+          name: binding-${variable.netlayout.vpc.name}
+        spec:
+          subnetName: ${variable.netlayout.vpc.name}
+          targetSubnetName: ${variable.netlayout.trunk.name}
+          vlanTrafficTag: ${variable.netlayout.vpc.vlanid}
+  Subnet_trunk:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.trunk.name}
+        spec:
+          accessMode: ${variable.netlayout.trunk.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.trunk.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+          - ${variable.netlayout.trunk.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  Subnet_uplink:
+    type: CCI.Supervisor.Resource
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: crd.nsx.vmware.com/v1alpha1
+        kind: Subnet
+        metadata:
+          name: ${variable.netlayout.uplink.name}
+        spec:
+          accessMode: ${variable.netlayout.uplink.access_mode}
+          advancedConfig:
+            connectivityState: ${variable.netlayout.uplink.connectivity_state}
+            staticIPAllocation:
+              enabled: true
+          ipAddresses:
+          - ${variable.netlayout.uplink.ipaddresses}
+          subnetDHCPConfig:
+            mode: DHCPDeactivated
+  Bootstrap_Secrets:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+    - Namespace
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: ${variable.bootstrap_secret_name}
+        type: Opaque
+        stringData:
+          lab-password: ${input.lab_password}
+          vyos-rest-api-key: ${input.vyos_rest_api_key}
+  VyOS_Machine:
+    type: CCI.Supervisor.Resource
+    dependsOn:
+    - Subnet_uplink
+    - Subnet_trunk
+    - Bootstrap_Secrets
+    properties:
+      context: ${resource.Namespace.id}
+      manifest:
+        apiVersion: vmoperator.vmware.com/v1alpha5
+        kind: VirtualMachine
+        metadata:
+          name: ${variable.vyos_settings.hostname}-${env.shortDeploymentId}
+        spec:
+          className: ${variable.vyos_settings.vm_class}
+          imageName: ${variable.vyos_settings.vm_image}
+          powerState: PoweredOn
+          storageClass: ${variable.namespace_settings.storage.policy}
+          network:
+            interfaces:
+            - name: uplink
+              network:
+                apiVersion: crd.nsx.vmware.com/v1alpha1
+                kind: Subnet
+                name: ${resource.Subnet_uplink.manifest.metadata.name}
+            - name: trunk
+              network:
+                apiVersion: crd.nsx.vmware.com/v1alpha1
+                kind: Subnet
+                name: ${resource.Subnet_trunk.manifest.metadata.name}
+          bootstrap:
+            vAppConfig:
+              properties:
+              - key: hostname
+                value:
+                  value: ${variable.vyos_settings.fqdn}
+              - key: ipaddress
+                value:
+                  value: ${to_string(variable.vyos_settings.mgmt_ip)}
+              - key: netmask
+                value:
+                  value: ${to_string(variable.vyos_settings.mgmt_mask)}
+              - key: gateway
+                value:
+                  value: ${to_string(variable.vyos_settings.mgmt_gw)}
+              - key: dns
+                value:
+                  value: ${to_string(variable.vyos_settings.dns.local_resolver)}
+              - key: domain
+                value:
+                  value: ${to_string(input.lab.domain_name)}
+              - key: ntp
+                value:
+                  value: ${to_string(variable.vyos_settings.ntp.upstream_server)}
+              - key: password
+                value:
+                  from:
+                    name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
+                    key: lab-password
+              - key: enable_ssh
+                value:
+                  value: ${to_string(variable.vyos_settings.enable_ssh)}
+              - key: enable_rest
+                value:
+                  value: ${to_string(variable.vyos_settings.enable_rest)}
+              - key: rest_api_key
+                value:
+                  from:
+                    name: ${resource.Bootstrap_Secrets.manifest.metadata.name}
+                    key: vyos-rest-api-key
+              - key: management_network
+                value:
+                  value: ${to_string(variable.vyos_settings.management_network)}
+              - key: trunk_network
+                value:
+                  value: ${to_string(variable.vyos_settings.trunk_network)}
+              - key: config_base64
+                value:
+                  value: ${base64_encode(variable.vyos_config)}
+      wait:
+        conditions:
+        - type: VirtualMachineCreated
+          status: 'True'
+outputs:
+  contract_version:
+    value: nested-vcf.modular/v1
+  lab_name:
+    value: ${input.lab.lab_name}
+  namespace_name:
+    value: ${resource.Namespace.name}
+  vpc_name:
+    value: ${resource.VPC_Main.name}
+  external_ip:
+    value: ${resource.VPC_IP_Allocation.configs.spec.allocationIPs[0]}
+  vyos_ip:
+    value: ${variable.vyos_settings.mgmt_ip}
